@@ -466,5 +466,29 @@ async def level(ctx, member: discord.Member = None):
     lvl = xp // 100
     await ctx.send(f"📊 العضو {target.mention} لديه **{xp} XP** ويقع في **Level {lvl}**!")
 
+import threading
 import os
-bot.run(os.environ.get("DISCORD_TOKEN"))
+from flask import Flask
+
+app = Flask(__name__)
+
+
+@app.route("/")
+def home():
+  return "Bot is running!"
+
+
+def run_bot():
+  token = os.environ.get("DISCORD_TOKEN")
+  if token:
+    bot.run(token)
+
+
+# تشغيل بوت ديسكورد في خلفية خادم الويب
+if __name__ == "__main__":
+  threading.Thread(target=run_bot).daemon = True
+  port = int(os.environ.get("PORT", 10000))
+  app.run(host="0.0.0.0", port=port)
+else:
+  # هذا الجزء يشتغل لما غيونيكرون (Gunicorn) يشغل التطبيق
+  threading.Thread(target=run_bot).daemon = True
