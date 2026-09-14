@@ -14,10 +14,10 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# إزالة أمر help الافتراضي لنقوم بإنشاء أمر مخصص ومرتب
+# إزالة أمر help القديم
 bot.remove_command('help')
 
-# تخزين مؤقت للـ XP، تتبع السبام المتلاحق، وعداد العقوبات المتصاعدة لكل عضو
+# تخزين مؤقت للـ XP، السبام، والعقوبات المتصاعدة
 user_xp = defaultdict(int)
 last_message_time = defaultdict(float)
 last_message_content = defaultdict(str)
@@ -31,127 +31,102 @@ MY_SERVER_INVITE = "discord.gg/voidcraft"
 
 @bot.event
 async def on_ready():
-    print(f"تم تسجيل الدخول بنجاح باسم: {bot.user} - نظام الحماية والأوامر المخصصة يعمل بكفاءة! 🛡️")
+    print(f"تم تسجيل الدخول بنجاح باسم: {bot.user} - نظام الحماية والأوامر يعمل بكفاءة! 🛡️")
+    try:
+        # مزامنة أوامر السلاش (Slash Commands) مع ديسكورد تلقائياً
+        synced = await bot.tree.sync()
+        print(f"تم مزامنة {len(synced)} أمر (Slash Command) بنجاح.")
+    except Exception as e:
+        print(f"خطأ في مزامنة الأوامر: {e}")
 
-@bot.command()
-async def ping(ctx):
-    await ctx.send(f"Pong! 🏓 سرعة استجابة البوت: {round(bot.latency * 1000)}ms")
-
-
-# ==================== نظام قائمة الأوامر المخصص (Help System) ====================
-
-@bot.command(name="help")
-async def help_command(ctx):
-    is_owner_or_admin = (ctx.author.id in OWNER_IDS or ctx.author.guild_permissions.administrator)
-
-    if is_owner_or_admin:
-        embed = discord.Embed(
-            title="🛡️ لوحة تحكم أونر السيرفر والإدارة (Owner & Admin Help)",
-            description="جميع أوامر التحكم والحماية المتاحة لك بصفتك مشرفاً أو مالكاً للسيرفر:",
-            color=discord.Color.gold()
-        )
-        embed.add_field(
-            name="⚖️ أوامر الإدارة والعقوبات",
-            value="`!mute @العضو [بالدقائق] [السبب]` - إعطاء ميوت متصاعد/محدد.\n"
-                  "`!unmute @العضو` - رفع الميوت عن العضو.\n"
-                  "`!kick @العضو [السبب]` - طرد العضو من السيرفر.\n"
-                  "`!ban @العضو [السبب]` - حظر العضو نهائياً.\n"
-                  "`!clear [العدد]` - مسح رسائل الشات السريع (بحد أقصى 100).",
-            inline=False
-        )
-        embed.add_field(
-            name="🎟️ أوامر التكتات والترحيب والتفعيل",
-            value="`!setup_tickets` - إرسال قائمة زر إنشاء التكتات.\n"
-                  "`!testwelcome` - تجربة إرسال رسالة الترحيب في القناة المخصصة.",
-            inline=False
-        )
-        embed.add_field(
-            name="🤖 الحماية التلقائية المفعلة في غيابك",
-            value="• منع روابط الديسكورد الخارجية والروابط المشبوهة والمهكرة.\n"
-                  "• استثناء منصات (يوتيوب، تيك توك، إنستغرام، سناب شات) ورابط سيرفرك.\n"
-                  "• عقوبة ميوت نصف ساعة للملفات أو الصور المهكرة.\n"
-                  "• نظام سبام ذكي مع عقوبة ميوت متصاعدة وإرسال تقرير بقناة `ban` تلقائياً.",
-            inline=False
-        )
-    else:
-        embed = discord.Embed(
-            title="🎮 أوامر الأعضاء العامة (VoidCraft)",
-            description="هذه هي الأوامر المتاحة لك داخل السيرفر:",
-            color=discord.Color.blurple()
-        )
-        embed.add_field(
-            name="📊 الأوامر المتاحة",
-            value="`!ping` - فحص سرعة استجابة البوت.\n"
-                  "`!level` - لعرض مستواك الحالي ونقاط الخبرة (XP).\n"
-                  "`!level @العضو` - لعرض مستوى أي عضو آخر.",
-            inline=False
-        )
-        embed.set_footer(text="لإنشاء تكت دعم فني، يرجى التوجه للروم المخصص والضغط على زر إنشاء التكت.")
-
-    await ctx.send(embed=embed)
+@bot.tree.command(name="ping", description="فحص سرعة استجابة البوت")
+async def ping(interaction: discord.Interaction):
+    await interaction.response.send_message(f"Pong! 🏓 سرعة استجابة البوت: {round(bot.latency * 1000)}ms", ephemeral=True)
 
 
-# ==================== أقسام أوامر الإدارة الشاملة ====================
+# ==================== أوامر الإدارة والحماية (Slash Commands) ====================
 
-@bot.command()
-@commands.has_permissions(moderate_members=True)
-async def mute(ctx, member: discord.Member, minutes: int = 60, *, reason="لم يُذكر سبب"):
-    if member.id in OWNER_IDS or member.guild_permissions.administrator:
-        await ctx.send("❌ لا يمكنك إعطاء ميوت لهذا الشخص!", ephemeral=True)
+@bot.tree.command(name="mute", description="إعطاء ميوت (تقييد) لعضو معين في السيرفر")
+@discord.app_commands.describe(member="العضو المراد إعطاؤه ميوت", minutes="مدة الميوت بالدقائق (الافتراضي 60)", reason="سبب الميوت")
+async def slash_mute(interaction: discord.Interaction, member: discord.Member, minutes: int = 60, reason: str = "لم يُذكر سبب"):
+    if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
+        await interaction.response.send_message("❌ عذراً، لا تمتلك صلاحية استخدام هذا الأمر!", ephemeral=True)
         return
+
+    if member.id in OWNER_IDS or member.guild_permissions.administrator:
+        await interaction.response.send_message("❌ لا يمكنك إعطاء ميوت لهذا الشخص!", ephemeral=True)
+        return
+
     try:
         duration = timedelta(minutes=minutes)
         await member.timeout(duration, reason=reason)
-        await ctx.send(f"🔇 تم إعطاء ميوت للعضو {member.mention} لمدة {minutes} دقيقة. السبب: {reason}")
+        await interaction.response.send_message(f"🔇 تم إعطاء ميوت للعضو {member.mention} لمدة {minutes} دقيقة. السبب: {reason}")
     except Exception as e:
-        await ctx.send(f"❌ حدث خطأ: {e}")
+        await interaction.response.send_message(f"❌ حدث خطأ: {e}", ephemeral=True)
 
-@bot.command()
-@commands.has_permissions(moderate_members=True)
-async def unmute(ctx, member: discord.Member):
+@bot.tree.command(name="unmute", description="رفع الميوت عن العضو")
+@discord.app_commands.describe(member="العضو المراد رفع الميوت عنه")
+async def slash_unmute(interaction: discord.Interaction, member: discord.Member):
+    if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
+        await interaction.response.send_message("❌ عذراً، لا تمتلك صلاحية استخدام هذا الأمر!", ephemeral=True)
+        return
+
     try:
         await member.timeout(None)
-        await ctx.send(f"🔊 تم رفع الميوت عن العضو {member.mention} بنجاح.")
+        await interaction.response.send_message(f"🔊 تم رفع الميوت عن العضو {member.mention} بنجاح.")
     except Exception as e:
-        await ctx.send(f"❌ حدث خطأ: {e}")
+        await interaction.response.send_message(f"❌ حدث خطأ: {e}", ephemeral=True)
 
-@bot.command()
-@commands.has_permissions(kick_members=True)
-async def kick(ctx, member: discord.Member, *, reason="لم يُذكر سبب"):
-    if member.id in OWNER_IDS or member.guild_permissions.administrator:
-        await ctx.send("❌ لا يمكنك طرد هذا الشخص!", ephemeral=True)
+@bot.tree.command(name="kick", description="طرد عضو من السيرفر")
+@discord.app_commands.describe(member="العضو المراد طرده", reason="السبب")
+async def slash_kick(interaction: discord.Interaction, member: discord.Member, reason: str = "لم يُذكر سبب"):
+    if not interaction.user.guild_permissions.kick_members and interaction.user.id not in OWNER_IDS:
+        await interaction.response.send_message("❌ عذراً، لا تمتلك صلاحية طرد الأعضاء!", ephemeral=True)
         return
+
+    if member.id in OWNER_IDS or member.guild_permissions.administrator:
+        await interaction.response.send_message("❌ لا يمكنك طرد هذا الشخص!", ephemeral=True)
+        return
+
     try:
         await member.kick(reason=reason)
-        await ctx.send(f"👢 تم طرد العضو {member.mention}. السبب: {reason}")
+        await interaction.response.send_message(f"👢 تم طرد العضو {member.mention}. السبب: {reason}")
     except Exception as e:
-        await ctx.send(f"❌ حدث خطأ: {e}")
+        await interaction.response.send_message(f"❌ حدث خطأ: {e}", ephemeral=True)
 
-@bot.command()
-@commands.has_permissions(ban_members=True)
-async def ban(ctx, member: discord.Member, *, reason="لم يُذكر سبب"):
-    if member.id in OWNER_IDS or member.guild_permissions.administrator:
-        await ctx.send("❌ لا يمكنك حظر هذا الشخص!", ephemeral=True)
+@bot.tree.command(name="ban", description="حظر عضو من السيرفر نهائياً")
+@discord.app_commands.describe(member="العضو المراد حظره", reason="السبب")
+async def slash_ban(interaction: discord.Interaction, member: discord.Member, reason: str = "لم يُذكر سبب"):
+    if not interaction.user.guild_permissions.ban_members and interaction.user.id not in OWNER_IDS:
+        await interaction.response.send_message("❌ عذراً، لا تمتلك صلاحية حظر الأعضاء!", ephemeral=True)
         return
+
+    if member.id in OWNER_IDS or member.guild_permissions.administrator:
+        await interaction.response.send_message("❌ لا يمكنك حظر هذا الشخص!", ephemeral=True)
+        return
+
     try:
         await member.ban(reason=reason)
-        await ctx.send(f"🔨 تم حظر العضو {member.mention} نهائياً. السبب: {reason}")
+        await interaction.response.send_message(f"🔨 تم حظر العضو {member.mention} نهائياً. السبب: {reason}")
     except Exception as e:
-        await ctx.send(f"❌ حدث خطأ: {e}")
+        await interaction.response.send_message(f"❌ حدث خطأ: {e}", ephemeral=True)
 
-@bot.command()
-@commands.has_permissions(manage_messages=True)
-async def clear(ctx, amount: int = 10):
+@bot.tree.command(name="clear", description="مسح عدد من الرسائل في الشات (بحد أقصى 100)")
+@discord.app_commands.describe(amount="عدد الرسائل المراد مسحها")
+async def slash_clear(interaction: discord.Interaction, amount: int = 10):
+    if not interaction.user.guild_permissions.manage_messages and interaction.user.id not in OWNER_IDS:
+        await interaction.response.send_message("❌ عذراً، لا تمتلك صلاحية إدارة الرسائل!", ephemeral=True)
+        return
+
     if amount > 100:
         amount = 100
+
     try:
-        await ctx.message.delete()
-        deleted = await ctx.channel.purge(limit=amount)
-        msg = await ctx.send(f"🧹 تم مسح **{len(deleted)}** رسالة بنجاح.")
-        await discord.utils.sleep_until(time.time() + 4)
-        await msg.delete()
+        await interaction.response.defer(ephemeral=True)
+        deleted = await interaction.channel.purge(limit=amount)
+        await interaction.followup.send(f"🧹 تم مسح **{len(deleted)}** رسالة بنجاح.", ephemeral=True)
     except Exception as e:
-        await ctx.send(f"❌ حدث خطأ: {e}")
+        await interaction.followup.send(f"❌ حدث خطأ: {e}", ephemeral=True)
 
 
 # ==================== نظام التكتات (Tickets) ====================
@@ -276,36 +251,38 @@ class TicketButtonView(discord.ui.View):
     async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(TicketModal())
 
-@bot.command()
-@commands.has_permissions(administrator=True)
-async def setup_tickets(ctx):
-    if ctx.author.id not in OWNER_IDS and not ctx.author.guild_permissions.administrator:
-        await ctx.send("❌ هذا الأمر مخصص للأونر أو الإدارة فقط!", ephemeral=True)
+@bot.tree.command(name="setup_tickets", description="إرسال لوحة أزرار إنشاء التكتات (للإدارة فقط)")
+async def setup_tickets(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.administrator and interaction.user.id not in OWNER_IDS:
+        await interaction.response.send_message("❌ هذا الأمر مخصص للأونر أو الإدارة فقط!", ephemeral=True)
         return
+        
     embed = discord.Embed(
         title="ticketsVoidCraft.",
         description="To create a ticket use the Create ticket button",
         color=discord.Color.blurple()
     )
-    await ctx.send(embed=embed, view=TicketButtonView())
+    await interaction.channel.send(embed=embed, view=TicketButtonView())
+    await interaction.response.send_message("✅ تم إرسال قائمة التكتات بنجاح!", ephemeral=True)
 
 
-# ==================== نظام الترحيب (Welcome) ====================
+# ==================== نظام الترحيب التجريبي ====================
 
-@bot.command()
-async def testwelcome(ctx):
-    if ctx.author.id not in OWNER_IDS and not ctx.author.guild_permissions.manage_guild:
-        await ctx.send("❌ هذا الأمر مخصص للأونر أو الإدارة فقط!", ephemeral=True)
+@bot.tree.command(name="testwelcome", description="تجربة إرسال رسالة الترحيب في القناة المخصصة")
+async def testwelcome(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.manage_guild and interaction.user.id not in OWNER_IDS:
+        await interaction.response.send_message("❌ هذا الأمر مخصص للأونر أو الإدارة فقط!", ephemeral=True)
         return
-    member = ctx.author
-    channel = discord.utils.get(ctx.guild.text_channels, name="👋-welcome-👋")
+
+    member = interaction.user
+    channel = discord.utils.get(interaction.guild.text_channels, name="👋-welcome-👋")
     if not channel:
-        channel = discord.utils.get(ctx.guild.text_channels, name="welcome")
+        channel = discord.utils.get(interaction.guild.text_channels, name="welcome")
         if not channel:
-            await ctx.send("❌ لم أجد قناة ترحيب باسم مناسب!")
+            await interaction.response.send_message("❌ لم أجد قناة ترحيب باسم مناسب!", ephemeral=True)
             return
 
-    member_number = ctx.guild.member_count
+    member_number = interaction.guild.member_count
     embed = discord.Embed(
         title="✨ منور سيرفر VoidCraft! ✨",
         description=f"أهلاً بك يا {member.mention} في سيرفرنا!\nنحن سعداء جداً بانضمامك إلينا. 🎮🔥",
@@ -316,10 +293,13 @@ async def testwelcome(ctx):
     else:
         embed.set_thumbnail(url=member.default_avatar.url)
         
-    embed.set_footer(text=f"Member #{member_number}", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
+    embed.set_footer(text=f"Member #{member_number}", icon_url=interaction.guild.icon.url if interaction.guild.icon else None)
     
     await channel.send(embed=embed)
-    await ctx.send("✅ تم إرسال رسالة الترحيب التجريبية بنجاح!", ephemeral=True)
+    await interaction.response.send_message("✅ تم إرسال رسالة الترحيب التجريبية بنجاح!", ephemeral=True)
+
+
+# ==================== الأحداث التلقائية (الترحيب والحماية) ====================
 
 @bot.event
 async def on_member_join(member):
@@ -462,12 +442,16 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-@bot.command()
-async def level(ctx, member: discord.Member = None):
-    target = member or ctx.author
+
+# ==================== أمر المستوى للأعضاء ====================
+
+@bot.tree.command(name="level", description="عرض مستواك الحالي ونقاط الخبرة (XP)")
+@discord.app_commands.describe(member="العضو المراد عرض مستواه (اختياري)")
+async def slash_level(interaction: discord.Interaction, member: discord.Member = None):
+    target = member or interaction.user
     xp = user_xp[target.id]
     lvl = xp // 100
-    await ctx.send(f"📊 العضو {target.mention} لديه **{xp} XP** ويقع في **Level {lvl}**!")
+    await interaction.response.send_message(f"📊 العضو {target.mention} لديه **{xp} XP** ويقع في **Level {lvl}**!")
 
 
 # ==================== خادم الويب وتشغيل البوت ====================
@@ -485,8 +469,8 @@ def run_bot():
     else:
         print("❌ خطأ: لم يتم العثور على المتغير DISCORD_TOKEN في البيئة!")
 
-# بدء تشغيل البوت في خيط (Thread) منفصل
 bot_thread = threading.Thread(target=run_bot)
+bot_thread.daemon = Timeouts = True
 bot_thread.daemon = True
 bot_thread.start()
 
