@@ -4,6 +4,9 @@ import io
 import time
 from datetime import timedelta
 from collections import defaultdict
+import threading
+import os
+from flask import Flask
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -466,29 +469,27 @@ async def level(ctx, member: discord.Member = None):
     lvl = xp // 100
     await ctx.send(f"📊 العضو {target.mention} لديه **{xp} XP** ويقع في **Level {lvl}**!")
 
-import threading
-import os
-from flask import Flask
+
+# ==================== خادم الويب وتشغيل البوت ====================
 
 app = Flask(__name__)
 
-
 @app.route("/")
 def home():
-  return "Bot is running!"
-
+    return "Bot is running!"
 
 def run_bot():
-  token = os.environ.get("DISCORD_TOKEN")
-  if token:
-    bot.run(token)
+    token = os.environ.get("DISCORD_TOKEN")
+    if token:
+        bot.run(token)
+    else:
+        print("❌ خطأ: لم يتم العثور على المتغير DISCORD_TOKEN في البيئة!")
 
+# بدء تشغيل البوت في خيط (Thread) منفصل
+bot_thread = threading.Thread(target=run_bot)
+bot_thread.daemon = True
+bot_thread.start()
 
-# تشغيل بوت ديسكورد في خلفية خادم الويب
 if __name__ == "__main__":
-  threading.Thread(target=run_bot).daemon = True
-  port = int(os.environ.get("PORT", 10000))
-  app.run(host="0.0.0.0", port=port)
-else:
-  # هذا الجزء يشتغل لما غيونيكرون (Gunicorn) يشغل التطبيق
-  threading.Thread(target=run_bot).daemon = True
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
