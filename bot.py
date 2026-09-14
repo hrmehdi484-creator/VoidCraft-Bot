@@ -465,5 +465,5 @@ async def level(ctx, member: discord.Member = None):
     xp = user_xp[target.id]
     lvl = xp // 100
     await ctx.send(f"📊 العضو {target.mention} لديه **{xp} XP** ويقع في **Level {lvl}**!")
-
-bot.run("MTUzMjA3NjkyMjI0MTAyNDA5MA.G5PGYt.Kt2mYNW3c9YLvZ4uGpbp_PWOypF5kMt2kHAT9c")
+import os
+bot.run(os.environ.get("MTUzMjA3NjkyMjI0MTAyNDA5MA.GKMU7m.VuIt-CGB8ztgMBQ5BRGC0smLotLfdnMd3rrIBk"))
