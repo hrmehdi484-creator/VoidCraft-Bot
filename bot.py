@@ -14,10 +14,8 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# إزالة أمر help القديم
 bot.remove_command('help')
 
-# تخزين مؤقت للـ XP، السبام، والعقوبات المتصاعدة
 user_xp = defaultdict(int)
 last_message_time = defaultdict(float)
 last_message_content = defaultdict(str)
@@ -33,9 +31,9 @@ MY_SERVER_INVITE = "discord.gg/voidcraft"
 async def on_ready():
     print(f"تم تسجيل الدخول بنجاح باسم: {bot.user} - نظام الحماية والأوامر يعمل بكفاءة! 🛡️")
     try:
-        # مزامنة أوامر السلاش (Slash Commands) مع ديسكورد تلقائياً
+        # مزامنة الأوامر عالمياً (Global) لتعمل في أي سيرفر يضيف البوت
         synced = await bot.tree.sync()
-        print(f"تم مزامنة {len(synced)} أمر (Slash Command) بنجاح.")
+        print(f"تم مزامنة {len(synced)} أمر (Slash Command) عالمياً بنجاح.")
     except Exception as e:
         print(f"خطأ في مزامنة الأوامر: {e}")
 
@@ -470,7 +468,6 @@ def run_bot():
         print("❌ خطأ: لم يتم العثور على المتغير DISCORD_TOKEN في البيئة!")
 
 bot_thread = threading.Thread(target=run_bot)
-bot_thread.daemon = Timeouts = True
 bot_thread.daemon = True
 bot_thread.start()
 
