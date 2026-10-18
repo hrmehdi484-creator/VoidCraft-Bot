@@ -25,7 +25,6 @@ user_spam_count = defaultdict(int)
 user_warnings = defaultdict(list)
 
 # 🕒 تخزين سجل المخالفات والعقوبات المتصاعدة مع التصفير بعد 24 ساعة
-# Structure: user_violations[user_id] = {'suspicious_count': int, 'link_count': int, 'last_time': float}
 user_violations = defaultdict(lambda: {'suspicious_count': 0, 'link_count': 0, 'last_time': 0.0})
 
 # 🛡️ آيدي حساب الأونر الخاص بك
@@ -52,6 +51,51 @@ DANGEROUS_EXTENSIONS = [
     '.apk', '.zip', '.rar', '.7z', '.tar', '.gz'
 ]
 
+# ==================== دالة مساعدة لإرسال سجل العقوبات في قناة ban و logs ====================
+
+async def send_punishment_log(guild, member, executor, punishment_type, reason, duration="دائم"):
+    # 1. البحث عن قناة ban المعلنة للجميع
+    ban_channel = (discord.utils.get(guild.text_channels, name="ban") or 
+                   discord.utils.get(guild.text_channels, name="البان") or 
+                   discord.utils.get(guild.text_channels, name="bans"))
+
+    # 2. البحث عن قناة logs الخاصة بالسرية والإدارة
+    logs_channel = (discord.utils.get(guild.text_channels, name="logs") or 
+                    discord.utils.get(guild.text_channels, name="سجل-المراقبة"))
+
+    color_map = {
+        "MUTE 🔇": discord.Color.orange(),
+        "KICK 👢": discord.Color.gold(),
+        "BAN 🔨": discord.Color.red(),
+        "WARN ⚠️": discord.Color.yellow(),
+        "UNMUTE 🔊": discord.Color.green(),
+        "UNBAN 🔓": discord.Color.blue()
+    }
+
+    embed = discord.Embed(
+        title=f"🚨 [سجل عقوبة - {punishment_type}]",
+        color=color_map.get(punishment_type, discord.Color.dark_gray()),
+        timestamp=discord.utils.utcnow()
+    )
+    embed.add_field(name="👤 العضو المُعاقَب", value=f"{member.mention} (`{member.id}`)", inline=True)
+    embed.add_field(name="🛡️ المنفذ", value=f"{executor.mention if hasattr(executor, 'mention') else executor}", inline=True)
+    embed.add_field(name="⏱️ المدة", value=f"**{duration}**", inline=True)
+    embed.add_field(name="📜 السبب", value=f"`{reason}`", inline=False)
+    if hasattr(member, 'avatar') and member.avatar:
+        embed.set_thumbnail(url=member.avatar.url)
+
+    if ban_channel:
+        try:
+            await ban_channel.send(embed=embed)
+        except Exception as e:
+            print(f"خطأ في إرسال اللوج بقناة ban: {e}")
+
+    if logs_channel and logs_channel != ban_channel:
+        try:
+            await logs_channel.send(embed=embed)
+        except Exception as e:
+            print(f"خطأ في إرسال اللوج بقناة logs: {e}")
+
 # ==================== أحداث البوت المباشرة ====================
 
 @bot.event
@@ -63,7 +107,42 @@ async def on_ready():
     except Exception as e:
         print(f"❌ خطأ في مزامنة الأوامر: {e}")
 
-# ==================== أوامر الفحص والمعلومات العامة ====================
+# ==================== سجلات التعديل والحذف للرسائل (Audit Logs) ====================
+
+@bot.event
+async def on_message_delete(message):
+    if message.author.bot or message.guild is None:
+        return
+    logs_channel = discord.utils.get(message.guild.text_channels, name="logs")
+    if logs_channel:
+        embed = discord.Embed(
+            title="🗑️ تم حذف رسالة",
+            color=discord.Color.red(),
+            timestamp=discord.utils.utcnow()
+        )
+        embed.add_field(name="👤 صاحب الرسالة", value=message.author.mention, inline=True)
+        embed.add_field(name="💬 القناة", value=message.channel.mention, inline=True)
+        embed.add_field(name="📜 المحتوى", value=message.content or "[ملف/مرفق]", inline=False)
+        await logs_channel.send(embed=embed)
+
+@bot.event
+async def on_message_edit(before, after):
+    if before.author.bot or before.guild is None or before.content == after.content:
+        return
+    logs_channel = discord.utils.get(before.guild.text_channels, name="logs")
+    if logs_channel:
+        embed = discord.Embed(
+            title="✏️ تم تعديل رسالة",
+            color=discord.Color.blue(),
+            timestamp=discord.utils.utcnow()
+        )
+        embed.add_field(name="👤 العضو", value=before.author.mention, inline=True)
+        embed.add_field(name="💬 القناة", value=before.channel.mention, inline=True)
+        embed.add_field(name="🔴 النص القديم", value=before.content or "لا يوجد", inline=False)
+        embed.add_field(name="🟢 النص الجديد", value=after.content or "لا يوجد", inline=False)
+        await logs_channel.send(embed=embed)
+
+# ==================== أوامر الفحص والمعلومات العامة (للجميع) ====================
 
 @bot.tree.command(name="ping", description="فحص سرعة استجابة البوت")
 async def ping(interaction: discord.Interaction):
@@ -102,7 +181,7 @@ async def serverinfo(interaction: discord.Interaction):
 async def userinfo(interaction: discord.Interaction, member: discord.Member = None):
     target = member or interaction.user
     embed = discord.Embed(title=f"👤 معلومات {target.name}", color=target.color)
-    avatar_url = target.avatar.url if target.avatar else target.default_avatar.url
+    avatar_url = target.avatar.url if target.avatar else target.defaultavatar.url
     embed.set_thumbnail(url=avatar_url)
     embed.add_field(name="🆔 ID", value=f"`{target.id}`", inline=True)
     embed.add_field(name="📅 انضم للديسكورد", value=f"{target.created_at.strftime('%Y-%m-%d')}", inline=True)
@@ -119,13 +198,13 @@ async def avatar(interaction: discord.Interaction, member: discord.Member = None
     embed.set_image(url=avatar_url)
     await interaction.response.send_message(embed=embed)
 
-# ==================== أوامر الإدارة والحماية والتحكم (بالوقت الإجباري) ====================
+# ==================== أوامر الإدارة والعقوبات (للأدمنية فقط) ====================
 
-@bot.tree.command(name="mute", description="إعطاء ميوت موقت لعضو في السيرفر بالوقت المحدد")
+@bot.tree.command(name="mute", description="إعطاء ميوت موقت لعضو في السيرفر (للإدارة فقط)")
 @app_commands.describe(member="العضو المراد تقييده", minutes="مدة الميوت بالدقائق إجبارياً", reason="سبب الميوت")
 async def slash_mute(interaction: discord.Interaction, member: discord.Member, minutes: int, reason: str = "لم يُذكر سبب"):
     if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message("❌ عذراً، لا تمتلك صلاحية إدارة الأعضاء!", ephemeral=True)
+        await interaction.response.send_message("❌ عذراً، هذا الأمر مخصص للإدارة فقط!", ephemeral=True)
         return
 
     if member.id in OWNER_IDS or member.guild_permissions.administrator:
@@ -133,34 +212,36 @@ async def slash_mute(interaction: discord.Interaction, member: discord.Member, m
         return
 
     if minutes <= 0:
-        await interaction.response.send_message("❌ يجب تحديد مدة الميوت بالدقائق (أكبر من 0) لتجنب الميوت الأبدي!", ephemeral=True)
+        await interaction.response.send_message("❌ يجب تحديد مدة الميوت بالدقائق أكبر من 0!", ephemeral=True)
         return
 
     try:
         duration = timedelta(minutes=minutes)
         await member.timeout(duration, reason=reason)
-        await interaction.response.send_message(f"🔇 تم إعطاء ميوت للعضو {member.mention} لمدة **{minutes}** دقيقة. السبب: **{reason}**")
+        await interaction.response.send_message(f"🔇 تم إعطاء ميوت للعضو {member.mention} لمدة **{minutes}** دقيقة.")
+        await send_punishment_log(interaction.guild, member, interaction.user, "MUTE 🔇", reason, f"{minutes} دقيقة")
     except Exception as e:
         await interaction.response.send_message(f"❌ حدث خطأ: {e}", ephemeral=True)
 
-@bot.tree.command(name="unmute", description="رفع الميوت عن العضو")
+@bot.tree.command(name="unmute", description="رفع الميوت عن العضو (للإدارة فقط)")
 @app_commands.describe(member="العضو المراد فك الميوت عنه")
 async def slash_unmute(interaction: discord.Interaction, member: discord.Member):
     if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message("❌ عذراً، لا تمتلك الصلاحية المطلوبة!", ephemeral=True)
+        await interaction.response.send_message("❌ عذراً، هذا الأمر مخصص للإدارة فقط!", ephemeral=True)
         return
 
     try:
         await member.timeout(None)
         await interaction.response.send_message(f"🔊 تم رفع الميوت عن العضو {member.mention} بنجاح.")
+        await send_punishment_log(interaction.guild, member, interaction.user, "UNMUTE 🔊", "فك الميوت بواسطة الإدارة", "ملغى")
     except Exception as e:
         await interaction.response.send_message(f"❌ حدث خطأ: {e}", ephemeral=True)
 
-@bot.tree.command(name="kick", description="طرد عضو من السيرفر")
+@bot.tree.command(name="kick", description="طرد عضو من السيرفر (للإدارة فقط)")
 @app_commands.describe(member="العضو المراد طرده", reason="سبب الطرد")
 async def slash_kick(interaction: discord.Interaction, member: discord.Member, reason: str = "لم يُذكر سبب"):
     if not interaction.user.guild_permissions.kick_members and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message("❌ عذراً، لا تمتلك صلاحية طرد الأعضاء!", ephemeral=True)
+        await interaction.response.send_message("❌ عذراً، هذا الأمر مخصص للإدارة فقط!", ephemeral=True)
         return
 
     if member.id in OWNER_IDS or member.guild_permissions.administrator:
@@ -168,16 +249,17 @@ async def slash_kick(interaction: discord.Interaction, member: discord.Member, r
         return
 
     try:
+        await send_punishment_log(interaction.guild, member, interaction.user, "KICK 👢", reason, "طرد من السيرفر")
         await member.kick(reason=reason)
         await interaction.response.send_message(f"👢 تم طرد العضو {member.mention}. السبب: **{reason}**")
     except Exception as e:
         await interaction.response.send_message(f"❌ حدث خطأ: {e}", ephemeral=True)
 
-@bot.tree.command(name="ban", description="حظر عضو من السيرفر نهائياً")
+@bot.tree.command(name="ban", description="حظر عضو من السيرفر نهائياً (للإدارة فقط)")
 @app_commands.describe(member="العضو المراد حظره", reason="سبب الحظر")
 async def slash_ban(interaction: discord.Interaction, member: discord.Member, reason: str = "لم يُذكر سبب"):
     if not interaction.user.guild_permissions.ban_members and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message("❌ عذراً، لا تمتلك صلاحية الحظر!", ephemeral=True)
+        await interaction.response.send_message("❌ عذراً، هذا الأمر مخصص للإدارة فقط!", ephemeral=True)
         return
 
     if member.id in OWNER_IDS or member.guild_permissions.administrator:
@@ -185,29 +267,31 @@ async def slash_ban(interaction: discord.Interaction, member: discord.Member, re
         return
 
     try:
+        await send_punishment_log(interaction.guild, member, interaction.user, "BAN 🔨", reason, "حظر دائم")
         await member.ban(reason=reason)
         await interaction.response.send_message(f"🔨 تم حظر العضو {member.mention} نهائياً. السبب: **{reason}**")
     except Exception as e:
         await interaction.response.send_message(f"❌ حدث خطأ: {e}", ephemeral=True)
 
-@bot.tree.command(name="unban", description="فك الحظر عن آيدي عضو حظر سابقاً")
+@bot.tree.command(name="unban", description="فك الحظر عن آيدي عضو حظر سابقاً (للإدارة فقط)")
 @app_commands.describe(user_id="آيدي العضو المراد فك حظره")
 async def slash_unban(interaction: discord.Interaction, user_id: str):
     if not interaction.user.guild_permissions.ban_members and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message("❌ عذراً، لا تمتلك صلاحية التعامل مع البان!", ephemeral=True)
+        await interaction.response.send_message("❌ عذراً، مخصص للإدارة فقط!", ephemeral=True)
         return
     try:
         user = await bot.fetch_user(int(user_id))
         await interaction.guild.unban(user)
         await interaction.response.send_message(f"🔓 تم فك الحظر عن العضو **{user.name}** بنجاح.")
+        await send_punishment_log(interaction.guild, user, interaction.user, "UNBAN 🔓", "فك الحظر بواسطة الإدارة", "ملغى")
     except Exception as e:
         await interaction.response.send_message(f"❌ لم يتم العثور على العضو أو لم يتم حظره سابقاً: {e}", ephemeral=True)
 
-@bot.tree.command(name="clear", description="مسح عدد محدد من الرسائل في القناة")
+@bot.tree.command(name="clear", description="مسح عدد محدد من الرسائل في القناة (للإدارة فقط)")
 @app_commands.describe(amount="عدد الرسائل المراد مسحها (1-100)")
 async def slash_clear(interaction: discord.Interaction, amount: int = 10):
     if not interaction.user.guild_permissions.manage_messages and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message("❌ عذراً، لا تمتلك صلاحية إدارة الرسائل!", ephemeral=True)
+        await interaction.response.send_message("❌ عذراً، هذا الأمر مخصص للإدارة فقط!", ephemeral=True)
         return
 
     amount = min(amount, 100)
@@ -218,62 +302,65 @@ async def slash_clear(interaction: discord.Interaction, amount: int = 10):
     except Exception as e:
         await interaction.followup.send(f"❌ حدث خطأ: {e}", ephemeral=True)
 
-@bot.tree.command(name="warn", description="إضافة تحذير إداري لعضو")
+@bot.tree.command(name="warn", description="إضافة تحذير إداري لعضو (للإدارة فقط)")
 @app_commands.describe(member="العضو", reason="سبب التحذير")
 async def warn(interaction: discord.Interaction, member: discord.Member, reason: str = "تخطي القوانين"):
     if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message("❌ لا تمتلك صلاحية إعطاء تحذيرات!", ephemeral=True)
+        await interaction.response.send_message("❌ هذا الأمر مخصص للإدارة فقط!", ephemeral=True)
         return
 
     user_warnings[member.id].append(reason)
     total_warns = len(user_warnings[member.id])
     await interaction.response.send_message(f"⚠️ تم تحذير {member.mention}. السبب: **{reason}** (إجمالي التحذيرات: **{total_warns}**)")
+    await send_punishment_log(interaction.guild, member, interaction.user, "WARN ⚠️", reason, f"تحذير رقم #{total_warns}")
 
-@bot.tree.command(name="warnings", description="عرض تحذيرات عضو معين")
-@app_commands.describe(member="العضو والمراد فحص تحذيراته")
-async def warnings(interaction: discord.Interaction, member: discord.Member):
-    warns = user_warnings[member.id]
-    if not warns:
-        await interaction.response.send_message(f"✅ العضو {member.mention} ليس لديه أي تحذيرات.", ephemeral=True)
+@bot.tree.command(name="infractions", description="عرض السجل الشامل لعقوبات ومخالفات عضو (للإدارة فقط)")
+@app_commands.describe(member="العضو المراد استعراض سجل عقوباته")
+async def infractions(interaction: discord.Interaction, member: discord.Member):
+    if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
+        await interaction.response.send_message("❌ هذا الأمر مخصص للإدارة فقط!", ephemeral=True)
         return
 
-    warn_list = "\n".join([f"**{i+1}.** {w}" for i, w in enumerate(warns)])
-    embed = discord.Embed(title=f"⚠️ تحذيرات {member.name}", description=warn_list, color=discord.Color.red())
+    data = user_violations[member.id]
+    warns = user_warnings[member.id]
+
+    embed = discord.Embed(title=f"📋 سجل عقوبات ومخالفات {member.name}", color=discord.Color.dark_purple())
+    embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
+    embed.add_field(name="⚠️ إجمالي التحذيرات", value=f"**{len(warns)}** تحذير", inline=True)
+    embed.add_field(name="🚨 مخالفات الملفات المشبوهة", value=f"**{data['suspicious_count']}** مرة", inline=True)
+    embed.add_field(name="🔗 مخالفات الروابط الخارجية", value=f"**{data['link_count']}** مرة", inline=True)
+
+    if warns:
+        warn_text = "\n".join([f"• {w}" for w in warns])
+        embed.add_field(name="📜 تفاصيل التحذيرات الأخيرة", value=warn_text, inline=False)
+
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-@bot.tree.command(name="clear_warnings", description="مسح تحذيرات عضو بالكامل")
-@app_commands.describe(member="العضو")
-async def clear_warnings(interaction: discord.Interaction, member: discord.Member):
-    if not interaction.user.guild_permissions.administrator and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message("❌ مخصص للإدارة فقط!", ephemeral=True)
-        return
+# ==================== أوامر القفل والإعدادات الحساسة (للأونر والمالك فقط) ====================
 
-    user_warnings[member.id].clear()
-    await interaction.response.send_message(f"🧹 تم مسح جميع تحذيرات العضو {member.mention} بنجاح.")
-
-@bot.tree.command(name="lock", description="قفل القناة الحالية وإغلاق إمكانية الكتابة")
+@bot.tree.command(name="lock", description="قفل القناة الحالية (للأونر والمالك فقط)")
 async def lock(interaction: discord.Interaction):
-    if not interaction.user.guild_permissions.manage_channels and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message("❌ لا تمتلك صلاحية إدارة القنوات!", ephemeral=True)
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        await interaction.response.send_message("🔒 عذراً، هذا الأمر الحساس مخصص للأونر/مالك السيرفر فقط!", ephemeral=True)
         return
 
     await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=False)
     await interaction.response.send_message("🔒 تم قفل القناة بنجاح.")
 
-@bot.tree.command(name="unlock", description="إعادة فتح القناة والسماح بالكتابة")
+@bot.tree.command(name="unlock", description="إعادة فتح القناة (للأونر والمالك فقط)")
 async def unlock(interaction: discord.Interaction):
-    if not interaction.user.guild_permissions.manage_channels and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message("❌ لا تمتلك صلاحية إدارة القنوات!", ephemeral=True)
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        await interaction.response.send_message("🔓 عذراً، هذا الأمر الحساس مخصص للأونر/مالك السيرفر فقط!", ephemeral=True)
         return
 
     await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=True)
     await interaction.response.send_message("🔓 تم إعادة فتح القناة بنجاح.")
 
-@bot.tree.command(name="slowmode", description="تحديد الوضع البطئ للكتابة في القناة (بالثواني)")
+@bot.tree.command(name="slowmode", description="تحديد الوضع البطئ للقناة (للأونر والمالك فقط)")
 @app_commands.describe(seconds="المدة بالثواني (0 لإلغائه)")
 async def slowmode(interaction: discord.Interaction, seconds: int):
-    if not interaction.user.guild_permissions.manage_channels and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message("❌ لا تمتلك الصلاحية المطلوبة!", ephemeral=True)
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        await interaction.response.send_message("⏱️ عذراً، هذا الأمر مخصص للأونر/مالك السيرفر فقط!", ephemeral=True)
         return
 
     await interaction.channel.edit(slowmode_delay=seconds)
@@ -402,10 +489,10 @@ class TicketButtonView(discord.ui.View):
     async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(TicketModal())
 
-@bot.tree.command(name="setup_tickets", description="إرسال قائمة ولوحة فتح التكتات (للإدارة فقط)")
+@bot.tree.command(name="setup_tickets", description="إرسال قائمة ولوحة فتح التكتات (للأونر فقط)")
 async def setup_tickets(interaction: discord.Interaction):
-    if not interaction.user.guild_permissions.administrator and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message("❌ هذا الأمر مخصص للإدارة أو مالك البوت فقط!", ephemeral=True)
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        await interaction.response.send_message("❌ هذا الأمر مخصص لمالك السيرفر أو الأونر فقط!", ephemeral=True)
         return
         
     embed = discord.Embed(
@@ -416,32 +503,7 @@ async def setup_tickets(interaction: discord.Interaction):
     await interaction.channel.send(embed=embed, view=TicketButtonView())
     await interaction.response.send_message("✅ تم إرسال قائمة التكتات بنجاح!", ephemeral=True)
 
-# ==================== الترحيب واختبار الرسائل ====================
-
-@bot.tree.command(name="testwelcome", description="تجربة إرسال رسالة الترحيب")
-async def testwelcome(interaction: discord.Interaction):
-    if not interaction.user.guild_permissions.manage_guild and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message("❌ هذا الأمر مخصص للإدارة فقط!", ephemeral=True)
-        return
-
-    member = interaction.user
-    channel = discord.utils.get(interaction.guild.text_channels, name="👋-welcome-👋") or discord.utils.get(interaction.guild.text_channels, name="welcome")
-    if not channel:
-        await interaction.response.send_message("❌ لم أجد قناة باسم `welcome` أو `👋-welcome-👋`!", ephemeral=True)
-        return
-
-    member_number = interaction.guild.member_count
-    embed = discord.Embed(
-        title="✨ أهلاً بك في سيرفر VoidCraft! ✨",
-        description=f"أنرت السيرفر يا {member.mention}!\nنتمنى لك أوقاتاً ممتعة معنا 🎮🔥",
-        color=discord.Color.blurple()
-    )
-    avatar_url = member.avatar.url if member.avatar else member.default_avatar.url
-    embed.set_thumbnail(url=avatar_url)
-    embed.set_footer(text=f"العضو رقم #{member_number}", icon_url=interaction.guild.icon.url if interaction.guild.icon else None)
-    
-    await channel.send(embed=embed)
-    await interaction.response.send_message("✅ تم تجربة إرسال رسالة الترحيب بنجاح!", ephemeral=True)
+# ==================== نظام الترحب التلقائي ====================
 
 @bot.event
 async def on_member_join(member):
@@ -465,7 +527,7 @@ async def on_member_join(member):
         except Exception as e:
             print(f"خطأ في إعطاء الرتبة التلقائية: {e}")
 
-# ==================== نظام الحماية الفولاذي الشامل (على جميع القنوات الحالية والجديدة) ====================
+# ==================== نظام الحماية الفولاذي الشامل (على جميع القنوات) ====================
 
 @bot.event
 async def on_message(message):
@@ -481,17 +543,13 @@ async def on_message(message):
     current_time = time.time()
     content_lower = message.content.lower()
 
-    ban_channel = (discord.utils.get(message.guild.text_channels, name="ban") or 
-                   discord.utils.get(message.guild.text_channels, name="البان") or 
-                   discord.utils.get(message.guild.text_channels, name="bans"))
-
-    # 🔄 التحقق من مرور 24 ساعة لتصفير العقوبات تلقائياً وإعادتها للصفر
+    # 🔄 التحقق من مرور 24 ساعة لتصفير العقوبات تلقائياً
     user_data = user_violations[author_id]
-    if current_time - user_data['last_time'] > 86400:  # 86400 ثانية = 24 ساعة
+    if current_time - user_data['last_time'] > 86400:  # 24 ساعة
         user_data['suspicious_count'] = 0
         user_data['link_count'] = 0
 
-    # 1. فحص الملفات المشبوهة والملغومة أو الصور الخبيثة
+    # 1. فحص الملفات المشبوهة والملغومة
     has_dangerous_file = False
     detected_file_name = ""
     for attachment in message.attachments:
@@ -507,29 +565,17 @@ async def on_message(message):
             user_data['suspicious_count'] += 1
             user_data['last_time'] = current_time
 
-            # التدرج: أول مرة ميوت 30 دقيقة + طرد، ثم تزيد ساعة لكل مخالفة تالية
             mute_minutes = 30 + ((user_data['suspicious_count'] - 1) * 60)
             
             await message.author.timeout(timedelta(minutes=mute_minutes), reason=f"ملف مشبوه/ملغوم #{user_data['suspicious_count']}")
-            
-            alert_text = (
-                f"🚨 **[نظام الحماية الفولاذي - منع الملغومات]**\n"
-                f"👤 العضو: {message.author.mention} (`{message.author}`)\n"
-                f"⚠️ التنبيه: تم محاولة إرسال ملف تنفيذي/مشبوه (`{detected_file_name}`).\n"
-                f"🔇 العقوبة: ميوت لمدة **{mute_minutes} دقيقة** + طرد (Kick) من السيرفر.\n"
-                f"🔄 (سوف يتم تصفير العقوبة تلقائياً بعد 24 ساعة من الالتزام)."
-            )
-            if ban_channel:
-                await ban_channel.send(alert_text)
-
-            # تنفيذ الطرد الفوري
+            await send_punishment_log(message.guild, message.author, bot.user, "KICK 👢", f"إرسال ملف تنفيذي/مشبوه ({detected_file_name})", f"ميوت {mute_minutes}د + طرد")
             await message.author.kick(reason=f"إرسال ملفات ملغومة/مشبوهة ({detected_file_name})")
 
         except Exception as e:
             print(f"خطأ في تنفيذ عقوبة الملفات المشبوهة: {e}")
         return
 
-    # 2. فحص روابط الديسكورد الخارجية والروابط العشوائية (مع السماح بالميديا والريلز Shorts/Reels/TikTok)
+    # 2. فحص روابط الديسكورد الخارجية والروابط العشوائية
     is_discord_link = "discord.gg/" in content_lower or "discord.com/invite/" in content_lower
     is_my_server = MY_SERVER_INVITE.lower() in content_lower
     has_any_link = "http://" in content_lower or "https://" in content_lower or "www." in content_lower
@@ -541,25 +587,11 @@ async def on_message(message):
             user_data['link_count'] += 1
             user_data['last_time'] = current_time
 
-            # عقوبة متصاعدة للروابط الخارجية: تبدأ بدقيقة، ثم تتصاعد (1, 5, 15, 30, 60...)
             link_mutes = [1, 5, 15, 30, 60, 120]
             mute_mins = link_mutes[min(user_data['link_count'] - 1, len(link_mutes) - 1)]
 
             await message.author.timeout(timedelta(minutes=mute_mins), reason=f"نشر روابط ديسكورد خارجية (#{user_data['link_count']})")
-
-            alert_text = (
-                f"🚨 **[نظام الحماية - منع الإعلانات الخارجية]**\n"
-                f"👤 العضو: {message.author.mention}\n"
-                f"⚠️ المخالفة: نشر رابط سيرفر ديسكورد خارجي.\n"
-                f"🔇 العقوبة المتصاعدة: ميوت لمدة **{mute_mins} دقيقة**.\n"
-                f"🔄 (تتصفّر السجلات بعد 24 ساعة تلقائياً)."
-            )
-            if ban_channel:
-                await ban_channel.send(alert_text)
-            else:
-                msg = await message.channel.send(alert_text)
-                await discord.utils.sleep_until(time.time() + 5)
-                await msg.delete()
+            await send_punishment_log(message.guild, message.author, bot.user, "MUTE 🔇", "نشر رابط سيرفر ديسكورد خارجي", f"{mute_mins} دقيقة")
 
         except Exception as e:
             print(f"خطأ في حماية الروابط الخارجية: {e}")
@@ -575,7 +607,7 @@ async def on_message(message):
             print(f"خطأ في معالجة الروابط العادية: {e}")
         return
 
-    # 3. مكافحة السبام والتكرار السريع للرسائل
+    # 3. مكافحة السبام
     if current_time - last_message_time[author_id] < 2.5 and content_lower == last_message_content[author_id]:
         try:
             await message.delete()
@@ -583,14 +615,7 @@ async def on_message(message):
             punish_minutes = user_spam_count[author_id] * 2
             
             await message.author.timeout(timedelta(minutes=punish_minutes), reason="تكرار وسبام الرسائل")
-            
-            alert_text = (
-                f"⚠️ **[نظام مكافحة السبام]**\n"
-                f"👤 العضو: {message.author.mention}\n"
-                f"🔇 العقوبة: ميوت لمدة **{punish_minutes} دقيقة** بسبب تكرار السبام."
-            )
-            if ban_channel:
-                await ban_channel.send(alert_text)
+            await send_punishment_log(message.guild, message.author, bot.user, "MUTE 🔇", "تكرار وسبام الرسائل الشات", f"{punish_minutes} دقيقة")
         except Exception as e:
             print(f"خطأ في معالجة السبام: {e}")
         return
@@ -598,7 +623,7 @@ async def on_message(message):
     last_message_time[author_id] = current_time
     last_message_content[author_id] = content_lower
 
-    # 4. نظام الخبرة والمستويات (XP)
+    # 4. نظام XP
     user_xp[author_id] += 10
     current_xp = user_xp[author_id]
     level = current_xp // 100
