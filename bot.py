@@ -141,7 +141,37 @@ async def on_message_edit(before, after):
         embed.add_field(name="🟢 النص الجديد", value=after.content or "لا يوجد", inline=False)
         await logs_channel.send(embed=embed)
 
-# ==================== أوامر الفحص والمساعدة العامة للأعضاء ====================
+# ==================== نظام التحقق من قنوات الإدارة (Anti-Public Admin Commands) ====================
+
+def is_staff_channel(channel):
+    name = channel.name.lower()
+    return any(keyword in name for keyword in ["admin", "staff", "console", "owner", "ادارة", "الإدارة"])
+
+async def check_admin_channel(interaction: discord.Interaction):
+    if interaction.user.id in OWNER_IDS:
+        return True
+    if not is_staff_channel(interaction.channel):
+        logs_channel = (discord.utils.get(interaction.guild.text_channels, name="logs") or 
+                        discord.utils.get(interaction.guild.text_channels, name="سجل-المراقبة"))
+        if logs_channel:
+            embed = discord.Embed(
+                title="🚨 [محاولة استخدام أمر إداري في شات عام]",
+                color=discord.Color.orange(),
+                timestamp=discord.utils.utcnow()
+            )
+            embed.add_field(name="🛡️ الإداري المخالف", value=interaction.user.mention, inline=True)
+            embed.add_field(name="💬 القناة العامة", value=interaction.channel.mention, inline=True)
+            embed.add_field(name="⚙️ الأمر المستخدم", value=f"`/{interaction.command.name}`", inline=False)
+            await logs_channel.send(embed=embed)
+        
+        await interaction.response.send_message(
+            f"❌ عذراً يا {interaction.user.mention}، لا يمكنك تنفيذ الأوامر الإدارية في القنوات العامة! يرجى التوجه لقنوات الإدارة المخصصة.", 
+            ephemeral=True
+        )
+        return False
+    return True
+
+# ==================== أوامر المساعدة المزدوجة ====================
 
 @bot.tree.command(name="help", description="عرض قائمة الأوامر والمساعدة العامة للاعضاء")
 async def help_command(interaction: discord.Interaction):
@@ -150,7 +180,7 @@ async def help_command(interaction: discord.Interaction):
         description="مرحباً بك! إليك قائمة الأوامر والميزات المتاحة لك في السيرفر:",
         color=discord.Color.blurple()
     )
-    embed.add_field(name="📊 `/level`", value="للعرض مستواك الحالي ونقاط الخبرة (XP).", inline=False)
+    embed.add_field(name="📊 `/level`", value="لعرض مستواك الحالي ونقاط الخبرة (XP).", inline=False)
     embed.add_field(name="👤 `/userinfo`", value="عرض معلومات تفصيلية عن حسابك أو حساب عضو آخر.", inline=False)
     embed.add_field(name="🖼️ `/avatar`", value="عرض الصورة الشخصية لك أو لعضو آخر.", inline=False)
     embed.add_field(name="🏰 `/serverinfo`", value="عرض معلومات وإحصائيات سيرفر VoidCraft.", inline=False)
@@ -158,6 +188,36 @@ async def help_command(interaction: discord.Interaction):
     embed.add_field(name="🎫 نظام التكتات", value="توجه إلى قناة التكتات واضغط على زر فتح تكت للتحدث مع الإدارة.", inline=False)
     embed.set_footer(text="VoidCraft Ecosystem - جميع الحقوق محفوظة")
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+@bot.tree.command(name="adminhelp", description="قائمة أوامر الإدارة الكاملة (لقنوات الإدارة فقط)")
+async def adminhelp(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
+        await interaction.response.send_message("❌ هذا الأمر مخصص للإدارة فقط!", ephemeral=True)
+        return
+    
+    if not await check_admin_channel(interaction):
+        return
+
+    embed = discord.Embed(
+        title="🛠️ لوحة أوامر إدارة VoidCraft Bot",
+        description="إليك قائمة جميع أوامر الإدارة والحماية المتاحة:",
+        color=discord.Color.dark_red()
+    )
+    embed.add_field(name="🔇 `/mute`", value="إعطاء ميوت موقت لعضو (المدة والسبب إجباري).", inline=False)
+    embed.add_field(name="🔊 `/unmute`", value="رفع الميوت عن العضو.", inline=False)
+    embed.add_field(name="👢 `/kick`", value="طرد عضو من السيرفر (السبب إجباري).", inline=False)
+    embed.add_field(name="🔨 `/ban`", value="حظر عضو نهائياً (السبب إجباري).", inline=False)
+    embed.add_field(name="🔓 `/unban`", value="فك الحظر عن آيدي العضو.", inline=False)
+    embed.add_field(name="🧹 `/clear`", value="مسح عدد محدد من الرسائل (1-100).", inline=False)
+    embed.add_field(name="⚠️ `/warn`", value="إضافة تحذير إداري لعضو (السبب إجباري).", inline=False)
+    embed.add_field(name="📋 `/infractions`", value="عرض سجل عقوبات ومخالفات عضو.", inline=False)
+    embed.add_field(name="🔒 `/lock` / `/unlock`", value="قفل أو فتح القناة الحالية (للأونر).", inline=False)
+    embed.add_field(name="⏱️ `/slowmode`", value="تحديد الوضع البطيء للقناة (للأونر).", inline=False)
+    embed.add_field(name="🎫 `/setup_tickets`", value="إرسال قائمة تكتات الدعم الفني.", inline=False)
+    
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+# ==================== أوامر الفحص والمعلومات العامة ====================
 
 @bot.tree.command(name="ping", description="فحص سرعة استجابة البوت")
 async def ping(interaction: discord.Interaction):
@@ -213,70 +273,13 @@ async def avatar(interaction: discord.Interaction, member: discord.Member = None
     embed.set_image(url=avatar_url)
     await interaction.response.send_message(embed=embed)
 
-# ==================== دالة للتحقق من قنوات الإدارة (Anti-Public Admin Commands) ====================
-
-def is_staff_channel(channel):
-    name = channel.name.lower()
-    return any(keyword in name for keyword in ["admin", "staff", "console", "owner", "ادارة", "الإدارة"])
-
-async def check_admin_channel(interaction: discord.Interaction):
-    if interaction.user.id in OWNER_IDS:
-        return True
-    if not is_staff_channel(interaction.channel):
-        logs_channel = discord.utils.get(interaction.guild.text_channels, name="logs")
-        if logs_channel:
-            embed = discord.Embed(
-                title="🚨 [محاولة استخدام أمر إداري في شات عام]",
-                color=discord.Color.orange(),
-                timestamp=discord.utils.utcnow()
-            )
-            embed.add_field(name="🛡️ الإداري المخالف", value=interaction.user.mention, inline=True)
-            embed.add_field(name="💬 القناة العامة", value=interaction.channel.mention, inline=True)
-            embed.add_field(name="⚙️ الأمر المستخدم", value=f"`/{interaction.command.name}`", inline=False)
-            await logs_channel.send(embed=embed)
-        
-        await interaction.response.send_message(
-            f"❌ عذراً يا {interaction.user.mention}، لا يمكنك تنفيذ الأوامر الإدارية هنا! يرجى استخدام قنوات الإدارة المخصصة.", 
-            ephemeral=True
-        )
-        return False
-    return True
-
-# ==================== أوامر الإدارة والعقوبات (مخصصة لقنوات الإدارة فقط) ====================
-
-@bot.tree.command(name="adminhelp", description="قائمة أوامر الإدارة الكاملة (لقنوات الإدارة فقط)")
-async def adminhelp(interaction: discord.Interaction):
-    if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message("❌ هذا الأمر مخصص للإدارة فقط!", ephemeral=True)
-        return
-    
-    if not await check_admin_channel(interaction):
-        return
-
-    embed = discord.Embed(
-        title="🛠️ لوحة أوامر إدارة VoidCraft Bot",
-        description="إليك قائمة جميع أوامر الإدارة والحماية المتاحة:",
-        color=discord.Color.dark_red()
-    )
-    embed.add_field(name="🔇 `/mute`", value="إعطاء ميوت موقت لعضو (المدة والسبب إجباري).", inline=False)
-    embed.add_field(name="🔊 `/unmute`", value="رفع الميوت عن العضو.", inline=False)
-    embed.add_field(name="👢 `/kick`", value="طرد عضو من السيرفر (السبب إجباري).", inline=False)
-    embed.add_field(name="🔨 `/ban`", value="حظر عضو نهائياً (السبب إجباري).", inline=False)
-    embed.add_field(name="🔓 `/unban`", value="فك الحظر عن آيدي العضو.", inline=False)
-    embed.add_field(name="🧹 `/clear`", value="مسح عدد محدد من الرسائل (1-100).", inline=False)
-    embed.add_field(name="⚠️ `/warn`", value="إضافة تحذير إداري لعضو.", inline=False)
-    embed.add_field(name="📋 `/infractions`", value="عرض سجل عقوبات ومخالفات عضو.", inline=False)
-    embed.add_field(name="🔒 `/lock` / `/unlock`", value="قفل أو فتح القناة الحالية (للأونر).", inline=False)
-    embed.add_field(name="⏱️ `/slowmode`", value="تحديد الوضع البطيء للقناة (للأونر).", inline=False)
-    embed.add_field(name="🎫 `/setup_tickets`", value="إرسال قائمة تكتات الدعم الفني.", inline=False)
-    
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+# ==================== أوامر الإدارة والعقوبات (مع السبب الإجباري وقنوات الإدارة) ====================
 
 @bot.tree.command(name="mute", description="إعطاء ميوت موقت لعضو (للإدارة فقط)")
 @app_commands.describe(member="العضو", minutes="مدة الميوت بالدقائق", reason="سبب العقوبة (إجباري)")
 async def slash_mute(interaction: discord.Interaction, member: discord.Member, minutes: int, reason: str):
     if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message("❌ هذا الأمر مخصص للإدارة فقط!", ephemeral=True)
+        await interaction.response.send_message("❌ عذراً، هذا الأمر مخصص للإدارة فقط!", ephemeral=True)
         return
     if not await check_admin_channel(interaction):
         return
@@ -617,24 +620,38 @@ async def on_message(message):
     last_message_content[author_id] = content_lower
 
     user_xp[author_id] += 10
-    if user_xp[author_id] > 0 and user_xp[author_id] % 100 == 0:
-        lvl_ch = discord.utils.get(message.guild.text_channels, name="levels")
-        if lvl_ch:
-            await lvl_ch.send(f"🎉 مبروك {message.author.mention}! وصلت **Level {user_xp[author_id] // 100}**!")
+    current_xp = user_xp[author_id]
+    level = current_xp // 100
+
+    if current_xp > 0 and current_xp % 100 == 0:
+        levels_channel = (discord.utils.get(message.guild.text_channels, name="levels") or 
+                          discord.utils.get(message.guild.text_channels, name="المستويات") or 
+                          discord.utils.get(message.guild.text_channels, name="level-up"))
+        if levels_channel:
+            try:
+                await levels_channel.send(f"🎉 مبروك {message.author.mention}! لقد وصلت إلى **Level {level}**! 🚀")
+            except Exception as e:
+                print(f"خطأ في إرسال رسالة الترقية: {e}")
 
     await bot.process_commands(message)
 
 # ==================== أمر المستوى ====================
 
-@bot.tree.command(name="level", description="عرض مستواك ونقاطك")
+@bot.tree.command(name="level", description="عرض مستواك الحالي ونقاط الخبرة (XP)")
+@app_commands.describe(member="العضو (اختياري)")
 async def slash_level(interaction: discord.Interaction, member: discord.Member = None):
     target = member or interaction.user
     xp = user_xp[target.id]
-    await interaction.response.send_message(f"📊 إحصائيات {target.name}: **{xp} XP** (Level {xp // 100})", ephemeral=True)
+    lvl = xp // 100
+    embed = discord.Embed(title=f"📊 إحصائيات مستوى {target.name}", color=discord.Color.blue())
+    embed.add_field(name="✨ الخبرة (XP)", value=f"**{xp}**", inline=True)
+    embed.add_field(name="🏆 المستوى (Level)", value=f"**{lvl}**", inline=True)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# ==================== خادم الويب للتشغيل 24/7 ====================
+# ==================== خادم الويب وتشغيل البوت ====================
 
 app = Flask(__name__)
+
 @app.route("/")
 def home():
     return "Bot is running 24/7!"
@@ -643,6 +660,8 @@ def run_bot():
     token = os.environ.get("DISCORD_TOKEN")
     if token:
         bot.run(token)
+    else:
+        print("❌ خطأ: لم يتم العثور على المتغير DISCORD_TOKEN في البيئة!")
 
 bot_thread = threading.Thread(target=run_bot)
 bot_thread.daemon = True
