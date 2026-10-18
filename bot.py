@@ -54,7 +54,7 @@ DANGEROUS_EXTENSIONS = [
     '.apk', '.zip', '.rar', '.7z', '.tar', '.gz'
 ]
 
-# ==================== نظام ترجمة اللغات العالمي (Translations System) ====================
+# ==================== قاموس اللغات العالمي المطور (Global Translations) ====================
 
 TRANSLATIONS = {
     "en": {
@@ -66,67 +66,129 @@ TRANSLATIONS = {
         "executor": "🛡️ Executor",
         "duration": "⏱️ Duration",
         "reason": "📜 Reason",
-        "default_reason": "No reason provided",
-        "ping_desc": "Current bot latency: **{latency}ms**",
-        "help_title": "🤖 Member Help - VoidCraft Bot",
-        "admin_help_title": "🛠️ VoidCraft Bot Staff Command Panel",
-        "lang_changed": "🌐 Server language has been successfully changed to: **{lang}**",
-        "lang_error": "❌ Unsupported language code! (e.g. en, ar, fr, es, de, ja...)"
+        "help_title": "🤖 Member Command Panel - VoidCraft",
+        "admin_help_title": "🛠️ Staff Command Panel - VoidCraft",
+        "sec_title": "🛡️ Security & Auto-Protection Systems",
+        "mod_title": "🔨 Moderation & Punishments",
+        "ctrl_title": "⚙️ Channel & Server Control",
+        "setup_title": "🎫 Setup & Configurations",
+        "lang_changed": "🌐 Server language changed successfully to: **{lang}**",
+        "lang_error": "❌ Unsupported language code! Supported: en, ar, fr, es, de, tr, ru."
     },
     "ar": {
         "staff_only": "❌ عذراً، هذا الأمر مخصص للإدارة فقط!",
         "owner_only": "❌ عذراً، هذا الأمر مخصص لمالك السيرفر أو الأونر فقط!",
-        "admin_channel_err": "❌ عذراً، لا يمكنك تنفيذ الأوامر الإدارية في القنوات العامة! يرجى التوجه لقنوات الإدارة.",
+        "admin_channel_err": "❌ عذراً، لا يمكنك تنفيذ الأوامر الإدارية في القنوات العامة! يرجى استخدام قنوات الإدارة.",
         "log_title": "🚨 [سجل عقوبة - {type}]",
         "target": "👤 العضو المُعاقَب",
         "executor": "🛡️ المنفذ",
         "duration": "⏱️ المدة",
         "reason": "📜 السبب",
-        "default_reason": "لم يُذكر سبب",
-        "ping_desc": "سرعة استجابة البوت الحالية: **{latency}ms**",
-        "help_title": "🤖 مساعدة الأعضاء - VoidCraft Bot",
-        "admin_help_title": "🛠️ لوحة أوامر إدارة VoidCraft Bot",
+        "help_title": "🤖 لوحة أوامر الأعضاء - VoidCraft",
+        "admin_help_title": "🛠️ لوحة أوامر الإدارة الشاملة - VoidCraft",
+        "sec_title": "🛡️ أنظمة الأمان والحماية التلقائية",
+        "mod_title": "🔨 أداوات الإدارة والعقوبات",
+        "ctrl_title": "⚙️ التحكم بالقنوات والسيرفر",
+        "setup_title": "🎫 الإعدادات والتكتات",
         "lang_changed": "🌐 تم تغيير لغة السيرفر بنجاح إلى: **{lang}**",
-        "lang_error": "❌ رمز اللغة غير مدعوم!"
+        "lang_error": "❌ رمز اللغة غير مدعوم! اللغات المتاحة: en, ar, fr, es, de, tr, ru."
     },
     "fr": {
-        "staff_only": "❌ Erreur : Cette commande est réservée au staff !",
-        "owner_only": "❌ Erreur : Cette commande est réservée au propriétaire !",
-        "admin_channel_err": "❌ Erreur : Impossible d'exécuter des commandes de staff ici !",
-        "log_title": "🚨 [Journal des sanctions - {type}]",
-        "target": "👤 Membre ciblée",
+        "staff_only": "❌ Erreur : Commande réservée au staff !",
+        "owner_only": "❌ Erreur : Commande réservée au propriétaire !",
+        "admin_channel_err": "❌ Erreur : Veuillez utiliser un salon staff !",
+        "log_title": "🚨 [Sanction - {type}]",
+        "target": "👤 Cible",
         "executor": "🛡️ Exécuteur",
         "duration": "⏱️ Durée",
         "reason": "📜 Raison",
-        "default_reason": "Aucune raison fournie",
-        "ping_desc": "Latence actuelle du bot : **{latency}ms**",
-        "help_title": "🤖 Aide des membres - VoidCraft Bot",
-        "admin_help_title": "🛠️ Panneau d'administration VoidCraft",
-        "lang_changed": "🌐 La langue du serveur a été changée en : **{lang}**",
-        "lang_error": "❌ Code de langue non pris en charge !"
+        "help_title": "🤖 Panneau des membres - VoidCraft",
+        "admin_help_title": "🛠️ Panneau d'administration - VoidCraft",
+        "sec_title": "🛡️ Sécurité & Protection Automatique",
+        "mod_title": "🔨 Modération & Sanctions",
+        "ctrl_title": "⚙️ Contrôle des salons",
+        "setup_title": "🎫 Configuration & Tickets",
+        "lang_changed": "🌐 Langue changée en : **{lang}**",
+        "lang_error": "❌ Code non supporté !"
     },
     "es": {
-        "staff_only": "❌ ¡Error: Este comando es solo para el staff!",
-        "owner_only": "❌ ¡Error: Este comando es solo para el propietario!",
-        "admin_channel_err": "❌ ¡Error: No puedes usar comandos de administración aquí!",
-        "log_title": "🚨 [Registro de castigos - {type}]",
-        "target": "👤 Miembro",
+        "staff_only": "❌ ¡Error: Comando solo para el staff!",
+        "owner_only": "❌ ¡Error: Comando solo para el dueño!",
+        "admin_channel_err": "❌ ¡Error: Usa un canal de administración!",
+        "log_title": "🚨 [Castigo - {type}]",
+        "target": "👤 Usuario",
         "executor": "🛡️ Ejecutor",
         "duration": "⏱️ Duración",
         "reason": "📜 Razón",
-        "default_reason": "Sin razón",
-        "ping_desc": "Latencia actual del bot: **{latency}ms**",
-        "help_title": "🤖 Ayuda - VoidCraft Bot",
-        "admin_help_title": "🛠️ Panel de administración",
-        "lang_changed": "🌐 ¡Idioma cambiado exitosamente a: **{lang}**!",
-        "lang_error": "❌ ¡Código de idioma no soportado!"
+        "help_title": "🤖 Panel de miembros - VoidCraft",
+        "admin_help_title": "🛠️ Panel de administración - VoidCraft",
+        "sec_title": "🛡️ Seguridad y Autoprotección",
+        "mod_title": "🔨 Moderación y Castigos",
+        "ctrl_title": "⚙️ Control de canales",
+        "setup_title": "🎫 Configuración y Tickets",
+        "lang_changed": "🌐 Idioma cambiado a: **{lang}**",
+        "lang_error": "❌ ¡Código no soportado!"
+    },
+    "de": {
+        "staff_only": "❌ Fehler: Nur für Teammitglieder!",
+        "owner_only": "❌ Fehler: Nur für den Besitzer!",
+        "admin_channel_err": "❌ Fehler: Bitte Admin-Kanal nutzen!",
+        "log_title": "🚨 [Strafe - {type}]",
+        "target": "👤 Mitglied",
+        "executor": "🛡️ Ausführender",
+        "duration": "⏱️ Dauer",
+        "reason": "📜 Grund",
+        "help_title": "🤖 Mitgliedermenü - VoidCraft",
+        "admin_help_title": "🛠️ Adminmenü - VoidCraft",
+        "sec_title": "🛡️ Sicherheit & Schutz",
+        "mod_title": "🔨 Moderation & Strafen",
+        "ctrl_title": "⚙️ Kanalsteuerung",
+        "setup_title": "🎫 Einstellungen & Tickets",
+        "lang_changed": "🌐 Sprache geändert auf: **{lang}**",
+        "lang_error": "❌ Nicht unterstützter Code!"
+    },
+    "tr": {
+        "staff_only": "❌ Hata: Bu komut sadece yetkililer içindir!",
+        "owner_only": "❌ Hata: Bu komut sadece sunucu sahibi içindir!",
+        "admin_channel_err": "❌ Hata: Lütfen yetkili kanalını kullanın!",
+        "log_title": "🚨 [Ceza Kaydı - {type}]",
+        "target": "👤 Kullanıcı",
+        "executor": "🛡️ Uygulayan",
+        "duration": "⏱️ Süre",
+        "reason": "📜 Sebep",
+        "help_title": "🤖 Üye Menüsü - VoidCraft",
+        "admin_help_title": "🛠️ Yetkili Menüsü - VoidCraft",
+        "sec_title": "🛡️ Güvenlik ve Otomatik Koruma",
+        "mod_title": "🔨 Yönetim ve Cezalar",
+        "ctrl_title": "⚙️ Kanal Denetimi",
+        "setup_title": "🎫 Kurulum ve Biletler",
+        "lang_changed": "🌐 Sunucu dili değiştirildi: **{lang}**",
+        "lang_error": "❌ Desteklenmeyen dil kodu!"
+    },
+    "ru": {
+        "staff_only": "❌ Ошибка: Только для администрации!",
+        "owner_only": "❌ Ошибка: Только для владельца!",
+        "admin_channel_err": "❌ Ошибка: Используйте админ-канал!",
+        "log_title": "🚨 [Лог наказания - {type}]",
+        "target": "👤 Нарушитель",
+        "executor": "🛡️ Модератор",
+        "duration": "⏱️ Длительность",
+        "reason": "📜 Причина",
+        "help_title": "🤖 Меню участников - VoidCraft",
+        "admin_help_title": "🛠️ Панель администратора - VoidCraft",
+        "sec_title": "🛡️ Безопасность и Автозащита",
+        "mod_title": "🔨 Модерация и Наказания",
+        "ctrl_title": "⚙️ Управление каналами",
+        "setup_title": "🎫 Настройки и Тикеты",
+        "lang_changed": "🌐 Язык сервера изменен на: **{lang}**",
+        "lang_error": "❌ Неподдерживаемый код языка!"
     }
 }
 
 def get_text(guild_id, key, **kwargs):
     lang = server_languages[guild_id]
     if lang not in TRANSLATIONS:
-        lang = "en" # Fallback to English
+        lang = "en"
     text = TRANSLATIONS[lang].get(key, TRANSLATIONS["en"].get(key, key))
     return text.format(**kwargs)
 
@@ -163,16 +225,12 @@ async def send_punishment_log(guild, member, executor, punishment_type, reason, 
         embed.set_thumbnail(url=member.avatar.url)
 
     if ban_channel:
-        try:
-            await ban_channel.send(embed=embed)
-        except Exception as e:
-            print(f"Error sending log to ban channel: {e}")
+        try: await ban_channel.send(embed=embed)
+        except Exception as e: print(f"Error ban log: {e}")
 
     if logs_channel and logs_channel != ban_channel:
-        try:
-            await logs_channel.send(embed=embed)
-        except Exception as e:
-            print(f"Error sending log to logs channel: {e}")
+        try: await logs_channel.send(embed=embed)
+        except Exception as e: print(f"Error audit log: {e}")
 
 # ==================== أحداث البوت ====================
 
@@ -183,14 +241,11 @@ async def on_ready():
         synced = await bot.tree.sync()
         print(f"🚀 Synced {len(synced)} slash commands globally.")
     except Exception as e:
-        print(f"❌ Failed to sync commands: {e}")
-
-# ==================== سجلات التعديل والحذف (Audit Logs) ====================
+        print(f"❌ Sync failed: {e}")
 
 @bot.event
 async def on_message_delete(message):
-    if message.author.bot or message.guild is None:
-        return
+    if message.author.bot or message.guild is None: return
     logs_channel = discord.utils.get(message.guild.text_channels, name="logs")
     if logs_channel:
         embed = discord.Embed(title="🗑️ Message Deleted", color=discord.Color.red(), timestamp=discord.utils.utcnow())
@@ -201,8 +256,7 @@ async def on_message_delete(message):
 
 @bot.event
 async def on_message_edit(before, after):
-    if before.author.bot or before.guild is None or before.content == after.content:
-        return
+    if before.author.bot or before.guild is None or before.content == after.content: return
     logs_channel = discord.utils.get(before.guild.text_channels, name="logs")
     if logs_channel:
         embed = discord.Embed(title="✏️ Message Edited", color=discord.Color.blue(), timestamp=discord.utils.utcnow())
@@ -219,8 +273,7 @@ def is_staff_channel(channel):
     return any(keyword in name for keyword in ["admin", "staff", "console", "owner", "ادارة", "الإدارة"])
 
 async def check_admin_channel(interaction: discord.Interaction):
-    if interaction.user.id in OWNER_IDS:
-        return True
+    if interaction.user.id in OWNER_IDS: return True
     if not is_staff_channel(interaction.channel):
         logs_channel = (discord.utils.get(interaction.guild.text_channels, name="logs") or 
                         discord.utils.get(interaction.guild.text_channels, name="سجل-المراقبة"))
@@ -235,10 +288,10 @@ async def check_admin_channel(interaction: discord.Interaction):
         return False
     return True
 
-# ==================== أوامر تغيير لغة البوت (Language Settings) ====================
+# ==================== أمر إعداد اللغة ====================
 
-@bot.tree.command(name="setlanguage", description="Change the bot language for this server (e.g., en, ar, fr, es)")
-@app_commands.describe(language_code="Language code (en, ar, fr, es...)")
+@bot.tree.command(name="setlanguage", description="Change bot language (Supported: en, ar, fr, es, de, tr, ru)")
+@app_commands.describe(language_code="Language code (en, ar, fr, es, de, tr, ru)")
 async def setlanguage(interaction: discord.Interaction, language_code: str):
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
         await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
@@ -251,72 +304,102 @@ async def setlanguage(interaction: discord.Interaction, language_code: str):
     else:
         await interaction.response.send_message(get_text(interaction.guild.id, "lang_error"), ephemeral=True)
 
-# ==================== الأوامر العامة وأمر المساعدة (Help) ====================
+# ==================== أوامر المساعدة المحدثة مع التقسيم الكامل ====================
 
-@bot.tree.command(name="help", description="Show general member commands and info")
+@bot.tree.command(name="help", description="General member command list")
 async def help_command(interaction: discord.Interaction):
-    embed = discord.Embed(title=get_text(interaction.guild.id, "help_title"), description="Here is the list of available member commands:", color=discord.Color.blurple())
-    embed.add_field(name="📊 `/level`", value="Check your current level and XP.", inline=False)
-    embed.add_field(name="👤 `/userinfo`", value="Display user details.", inline=False)
-    embed.add_field(name="🖼️ `/avatar`", value="Show user avatar.", inline=False)
-    embed.add_field(name="🏰 `/serverinfo`", value="Show server statistics.", inline=False)
+    embed = discord.Embed(title=get_text(interaction.guild.id, "help_title"), color=discord.Color.blurple())
+    embed.add_field(name="📊 `/level`", value="Check current level & XP stats.", inline=False)
+    embed.add_field(name="👤 `/userinfo`", value="Display user account info.", inline=False)
+    embed.add_field(name="🖼️ `/avatar`", value="Display user avatar image.", inline=False)
+    embed.add_field(name="🏰 `/serverinfo`", value="Display server stats & info.", inline=False)
     embed.add_field(name="🏓 `/ping`", value="Check bot latency.", inline=False)
-    embed.add_field(name="🌐 `/setlanguage`", value="Change bot language for the server.", inline=False)
+    embed.add_field(name="🤖 `/botinfo`", value="Display bot ecosystem stats.", inline=False)
     embed.set_footer(text="VoidCraft Ecosystem - Global Edition")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-@bot.tree.command(name="adminhelp", description="Show staff command panel (Staff channels only)")
+@bot.tree.command(name="adminhelp", description="Complete staff & admin command list (Staff Channels Only)")
 async def adminhelp(interaction: discord.Interaction):
     if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
         await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
         return
-    if not await check_admin_channel(interaction):
-        return
+    if not await check_admin_channel(interaction): return
 
-    embed = discord.Embed(title=get_text(interaction.guild.id, "admin_help_title"), description="List of administrative moderation tools:", color=discord.Color.dark_red())
-    embed.add_field(name="🔇 `/mute`", value="Timeout a member.", inline=False)
-    embed.add_field(name="🔊 `/unmute`", value="Remove timeout.", inline=False)
-    embed.add_field(name="👢 `/kick`", value="Kick a member.", inline=False)
-    embed.add_field(name="🔨 `/ban`", value="Ban a member.", inline=False)
-    embed.add_field(name="🔓 `/unban`", value="Unban a user ID.", inline=False)
-    embed.add_field(name="🧹 `/clear`", value="Purge messages.", inline=False)
-    embed.add_field(name="⚠️ `/warn`", value="Warn a member.", inline=False)
-    embed.add_field(name="📋 `/infractions`", value="Check punishment history.", inline=False)
+    embed = discord.Embed(title=get_text(interaction.guild.id, "admin_help_title"), color=discord.Color.dark_red())
+    
+    # 🔨 1. Moderation & Punishments
+    mod_text = (
+        "🔇 `/mute [member] [minutes] [reason]` - Timeout a member\n"
+        "🔊 `/unmute [member]` - Remove timeout\n"
+        "👢 `/kick [member] [reason]` - Kick a member\n"
+        "🔨 `/ban [member] [reason]` - Ban a member permanently\n"
+        "🔓 `/unban [user_id]` - Unban a user by ID\n"
+        "⚠️ `/warn [member] [reason]` - Add warning\n"
+        "📋 `/infractions [member]` - View member warning history\n"
+        "🧹 `/clear [amount]` - Purge chat messages (1-100)"
+    )
+    embed.add_field(name=get_text(interaction.guild.id, "mod_title"), value=mod_text, inline=False)
+
+    # 🛡️ 2. Security & Protection
+    sec_text = (
+        "⚡ **Anti-Exe / Anti-Malware:** Auto-mutes and kicks suspicious file uploads\n"
+        "⚡ **Anti-Discord Invite:** Auto-mutes external Discord server invite spam\n"
+        "⚡ **Anti-Spam:** Auto-mutes repeated fast messaging\n"
+        "⚡ **24-Hour Reset:** Automated violation resets after 24 hours"
+    )
+    embed.add_field(name=get_text(interaction.guild.id, "sec_title"), value=sec_text, inline=False)
+
+    # ⚙️ 3. Channel & Server Control
+    ctrl_text = (
+        "🔒 `/lock` - Lock current channel (Owner)\n"
+        "🔓 `/unlock` - Unlock current channel (Owner)\n"
+        "⏱️ `/slowmode [seconds]` - Set channel slowmode (Owner)"
+    )
+    embed.add_field(name=get_text(interaction.guild.id, "ctrl_title"), value=ctrl_text, inline=False)
+
+    # 🎫 4. Setup & Configurations
+    setup_text = (
+        "🎫 `/setup_tickets` - Deploy interactive support ticket panel (Owner)\n"
+        "🌐 `/setlanguage [code]` - Change bot language for current server (Owner)"
+    )
+    embed.add_field(name=get_text(interaction.guild.id, "setup_title"), value=setup_text, inline=False)
+
+    embed.set_footer(text="VoidCraft Ecosystem - Advanced Admin Protection")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-@bot.tree.command(name="ping", description="Check bot response latency")
+# ==================== الأوامر العامة الإضافية ====================
+
+@bot.tree.command(name="ping", description="Check latency")
 async def ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)
-    embed = discord.Embed(title="🏓 Pong!", description=get_text(interaction.guild.id, "ping_desc", latency=latency), color=discord.Color.green())
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(f"🏓 Pong! Latency: **{latency}ms**", ephemeral=True)
 
-@bot.tree.command(name="botinfo", description="Display bot info and statistics")
+@bot.tree.command(name="botinfo", description="Bot statistics")
 async def botinfo(interaction: discord.Interaction):
-    embed = discord.Embed(title="🤖 VoidCraft Bot Info", color=discord.Color.purple())
+    embed = discord.Embed(title="🤖 VoidCraft Bot Statistics", color=discord.Color.purple())
     embed.add_field(name="Servers", value=f"**{len(bot.guilds)}**", inline=True)
     embed.add_field(name="Users", value=f"**{sum(g.member_count for g in bot.guilds)}**", inline=True)
-    embed.set_footer(text="Developed for Global Servers")
     await interaction.response.send_message(embed=embed)
 
-@bot.tree.command(name="serverinfo", description="Display server statistics")
+@bot.tree.command(name="serverinfo", description="Server statistics")
 async def serverinfo(interaction: discord.Interaction):
     guild = interaction.guild
-    embed = discord.Embed(title=f"🏰 {guild.name} Info", color=discord.Color.gold())
+    embed = discord.Embed(title=f"🏰 {guild.name}", color=discord.Color.gold())
     if guild.icon: embed.set_thumbnail(url=guild.icon.url)
     embed.add_field(name="Owner", value=f"{guild.owner.mention}", inline=True)
     embed.add_field(name="Members", value=f"**{guild.member_count}**", inline=True)
     await interaction.response.send_message(embed=embed)
 
-@bot.tree.command(name="userinfo", description="Show user info")
+@bot.tree.command(name="userinfo", description="User info")
 @app_commands.describe(member="Target member")
 async def userinfo(interaction: discord.Interaction, member: discord.Member = None):
     target = member or interaction.user
-    embed = discord.Embed(title=f"👤 {target.name} Info", color=target.color)
+    embed = discord.Embed(title=f"👤 {target.name}", color=target.color)
     embed.set_thumbnail(url=target.avatar.url if target.avatar else target.default_avatar.url)
     embed.add_field(name="ID", value=f"`{target.id}`", inline=True)
     await interaction.response.send_message(embed=embed)
 
-@bot.tree.command(name="avatar", description="Show user avatar")
+@bot.tree.command(name="avatar", description="User avatar")
 @app_commands.describe(member="Target member")
 async def avatar(interaction: discord.Interaction, member: discord.Member = None):
     target = member or interaction.user
@@ -326,71 +409,61 @@ async def avatar(interaction: discord.Interaction, member: discord.Member = None
 
 # ==================== أوامر الإدارة والعقوبات ====================
 
-@bot.tree.command(name="mute", description="Timeout a member (Staff only)")
-@app_commands.describe(member="Target member", minutes="Duration in minutes", reason="Punishment reason (Required)")
+@bot.tree.command(name="mute", description="Timeout member")
+@app_commands.describe(member="Target", minutes="Minutes", reason="Reason (Required)")
 async def slash_mute(interaction: discord.Interaction, member: discord.Member, minutes: int, reason: str):
     if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
         await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
         return
     if not await check_admin_channel(interaction): return
-
-    if minutes <= 0:
-        await interaction.response.send_message("❌ Minutes must be greater than 0!", ephemeral=True)
-        return
+    if minutes <= 0: return await interaction.response.send_message("❌ Invalid duration!", ephemeral=True)
 
     try:
         await member.timeout(timedelta(minutes=minutes), reason=reason)
-        await interaction.response.send_message(f"🔇 Muted {member.mention} for **{minutes}** minutes. Reason: `{reason}`")
+        await interaction.response.send_message(f"🔇 Muted {member.mention} for **{minutes}** mins. Reason: `{reason}`")
         await send_punishment_log(interaction.guild, member, interaction.user, "MUTE 🔇", reason, f"{minutes} mins")
-    except Exception as e:
-        await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
+    except Exception as e: await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
 
-@bot.tree.command(name="unmute", description="Remove timeout from member")
-@app_commands.describe(member="Target member")
+@bot.tree.command(name="unmute", description="Unmute member")
+@app_commands.describe(member="Target")
 async def slash_unmute(interaction: discord.Interaction, member: discord.Member):
     if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
         await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
         return
     if not await check_admin_channel(interaction): return
-
     try:
         await member.timeout(None)
         await interaction.response.send_message(f"🔊 Unmuted {member.mention}.")
-        await send_punishment_log(interaction.guild, member, interaction.user, "UNMUTE 🔊", "Unmuted by staff", "None")
-    except Exception as e:
-        await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
+        await send_punishment_log(interaction.guild, member, interaction.user, "UNMUTE 🔊", "Unmuted", "None")
+    except Exception as e: await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
 
-@bot.tree.command(name="kick", description="Kick member from server")
-@app_commands.describe(member="Target member", reason="Reason (Required)")
+@bot.tree.command(name="kick", description="Kick member")
+@app_commands.describe(member="Target", reason="Reason (Required)")
 async def slash_kick(interaction: discord.Interaction, member: discord.Member, reason: str):
     if not interaction.user.guild_permissions.kick_members and interaction.user.id not in OWNER_IDS:
         await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
         return
     if not await check_admin_channel(interaction): return
-
     try:
         await send_punishment_log(interaction.guild, member, interaction.user, "KICK 👢", reason, "Kicked")
         await member.kick(reason=reason)
         await interaction.response.send_message(f"👢 Kicked {member.mention}. Reason: `{reason}`")
-    except Exception as e:
-        await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
+    except Exception as e: await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
 
-@bot.tree.command(name="ban", description="Ban member from server")
-@app_commands.describe(member="Target member", reason="Reason (Required)")
+@bot.tree.command(name="ban", description="Ban member")
+@app_commands.describe(member="Target", reason="Reason (Required)")
 async def slash_ban(interaction: discord.Interaction, member: discord.Member, reason: str):
     if not interaction.user.guild_permissions.ban_members and interaction.user.id not in OWNER_IDS:
         await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
         return
     if not await check_admin_channel(interaction): return
-
     try:
         await send_punishment_log(interaction.guild, member, interaction.user, "BAN 🔨", reason, "Permanent")
         await member.ban(reason=reason)
         await interaction.response.send_message(f"🔨 Banned {member.mention}. Reason: `{reason}`")
-    except Exception as e:
-        await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
+    except Exception as e: await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
 
-@bot.tree.command(name="unban", description="Unban user by ID")
+@bot.tree.command(name="unban", description="Unban ID")
 @app_commands.describe(user_id="User ID")
 async def slash_unban(interaction: discord.Interaction, user_id: str):
     if not interaction.user.guild_permissions.ban_members and interaction.user.id not in OWNER_IDS:
@@ -402,89 +475,76 @@ async def slash_unban(interaction: discord.Interaction, user_id: str):
         await interaction.guild.unban(user)
         await interaction.response.send_message(f"🔓 Unbanned **{user.name}**.")
         await send_punishment_log(interaction.guild, user, interaction.user, "UNBAN 🔓", "Unbanned", "None")
-    except Exception as e:
-        await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
+    except Exception as e: await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
 
-@bot.tree.command(name="clear", description="Purge messages")
-@app_commands.describe(amount="Number of messages (1-100)")
+@bot.tree.command(name="clear", description="Clear chat")
+@app_commands.describe(amount="Messages (1-100)")
 async def slash_clear(interaction: discord.Interaction, amount: int = 10):
     if not interaction.user.guild_permissions.manage_messages and interaction.user.id not in OWNER_IDS:
         await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
         return
     if not await check_admin_channel(interaction): return
-
     amount = min(amount, 100)
     try:
         await interaction.response.defer(ephemeral=True)
         deleted = await interaction.channel.purge(limit=amount)
         await interaction.followup.send(f"🧹 Cleared **{len(deleted)}** messages.", ephemeral=True)
-    except Exception as e:
-        await interaction.followup.send(f"❌ Error: {e}", ephemeral=True)
+    except Exception as e: await interaction.followup.send(f"❌ Error: {e}", ephemeral=True)
 
-@bot.tree.command(name="warn", description="Warn a member")
-@app_commands.describe(member="Target member", reason="Reason (Required)")
+@bot.tree.command(name="warn", description="Warn member")
+@app_commands.describe(member="Target", reason="Reason (Required)")
 async def warn(interaction: discord.Interaction, member: discord.Member, reason: str):
     if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
         await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
         return
     if not await check_admin_channel(interaction): return
-
     user_warnings[member.id].append(reason)
-    total_warns = len(user_warnings[member.id])
-    await interaction.response.send_message(f"⚠️ Warned {member.mention}. Reason: `{reason}` (Total: {total_warns})")
-    await send_punishment_log(interaction.guild, member, interaction.user, "WARN ⚠️", reason, f"Warning #{total_warns}")
+    await interaction.response.send_message(f"⚠️ Warned {member.mention}. Reason: `{reason}`")
+    await send_punishment_log(interaction.guild, member, interaction.user, "WARN ⚠️", reason, f"Warn #{len(user_warnings[member.id])}")
 
-@bot.tree.command(name="infractions", description="Check member punishment history")
-@app_commands.describe(member="Target member")
+@bot.tree.command(name="infractions", description="Check warnings")
+@app_commands.describe(member="Target")
 async def infractions(interaction: discord.Interaction, member: discord.Member):
     if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
         await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
         return
     if not await check_admin_channel(interaction): return
-
-    data = user_violations[member.id]
-    warns = user_warnings[member.id]
-
+    data, warns = user_violations[member.id], user_warnings[member.id]
     embed = discord.Embed(title=f"📋 Infractions for {member.name}", color=discord.Color.dark_purple())
     embed.add_field(name="Warnings", value=f"**{len(warns)}**", inline=True)
     embed.add_field(name="Suspicious Files", value=f"**{data['suspicious_count']}**", inline=True)
     embed.add_field(name="External Links", value=f"**{data['link_count']}**", inline=True)
-    if warns:
-        embed.add_field(name="Recent Warnings", value="\n".join([f"• {w}" for w in warns]), inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-@bot.tree.command(name="lock", description="Lock channel (Owner only)")
+@bot.tree.command(name="lock", description="Lock channel")
 async def lock(interaction: discord.Interaction):
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
         await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
         return
     if not await check_admin_channel(interaction): return
-
     await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=False)
     await interaction.response.send_message("🔒 Channel locked.")
 
-@bot.tree.command(name="unlock", description="Unlock channel (Owner only)")
+@bot.tree.command(name="unlock", description="Unlock channel")
 async def unlock(interaction: discord.Interaction):
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
         await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
         return
     if not await check_admin_channel(interaction): return
-
     await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=True)
     await interaction.response.send_message("🔓 Channel unlocked.")
 
-@bot.tree.command(name="slowmode", description="Set channel slowmode (Owner only)")
+@bot.tree.command(name="slowmode", description="Slowmode")
 @app_commands.describe(seconds="Seconds")
 async def slowmode(interaction: discord.Interaction, seconds: int):
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
         await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
         return
     if not await check_admin_channel(interaction): return
-
     await interaction.channel.edit(slowmode_delay=seconds)
-    await interaction.response.send_message(f"⏱️ Slowmode set to {seconds} seconds.")
+    await interaction.response.send_message(f"⏱️ Slowmode set to {seconds}s.")
 
-# ==================== التكتات والترحيب ====================
+# ==================== نظام التكتات والترحيب ====================
 
 class ConfirmCloseView(discord.ui.View):
     def __init__(self): super().__init__(timeout=None)
@@ -548,20 +608,20 @@ class TicketButtonView(discord.ui.View):
     async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(TicketModal())
 
-@bot.tree.command(name="setup_tickets", description="Setup support tickets panel (Owner only)")
+@bot.tree.command(name="setup_tickets", description="Setup tickets panel")
 async def setup_tickets(interaction: discord.Interaction):
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
         await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
         return
-    embed = discord.Embed(title="🎫 VoidCraft Support", description="Click the button below to open a support ticket.", color=discord.Color.blurple())
+    embed = discord.Embed(title="🎫 VoidCraft Support", description="Click below to open a ticket.", color=discord.Color.blurple())
     await interaction.channel.send(embed=embed, view=TicketButtonView())
-    await interaction.response.send_message("✅ Ticket panel sent.", ephemeral=True)
+    await interaction.response.send_message("✅ Panel sent.", ephemeral=True)
 
 @bot.event
 async def on_member_join(member):
     channel = discord.utils.get(member.guild.text_channels, name="welcome") or discord.utils.get(member.guild.text_channels, name="👋-welcome-👋")
     if channel:
-        embed = discord.Embed(title="✨ Welcome to VoidCraft!", description=f"Glad to have you here {member.mention}! 🎮", color=discord.Color.blurple())
+        embed = discord.Embed(title="✨ Welcome to VoidCraft!", description=f"Welcome {member.mention}! 🎮", color=discord.Color.blurple())
         embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
         await channel.send(embed=embed)
     role = discord.utils.get(member.guild.roles, name="Player")
@@ -569,13 +629,11 @@ async def on_member_join(member):
         try: await member.add_roles(role)
         except: pass
 
-# ==================== الحماية الشاملة ====================
+# ==================== نظام الحماية الشامل ====================
 
 @bot.event
 async def on_message(message):
-    if message.author.bot or message.guild is None:
-        return
-
+    if message.author.bot or message.guild is None: return
     if message.author.id in OWNER_IDS or message.author.guild_permissions.administrator:
         await bot.process_commands(message)
         return
@@ -649,27 +707,25 @@ async def on_message(message):
                           discord.utils.get(message.guild.text_channels, name="المستويات") or 
                           discord.utils.get(message.guild.text_channels, name="level-up"))
         if levels_channel:
-            try:
-                await levels_channel.send(f"🎉 Congrats {message.author.mention}! You reached **Level {level}**! 🚀")
-            except Exception as e:
-                print(f"Error sending level message: {e}")
+            try: await levels_channel.send(f"🎉 Congrats {message.author.mention}! Level **{level}**! 🚀")
+            except: pass
 
     await bot.process_commands(message)
 
 # ==================== أمر المستوى ====================
 
-@bot.tree.command(name="level", description="Check your current level and XP")
-@app_commands.describe(member="Target member (Optional)")
+@bot.tree.command(name="level", description="Check current level")
+@app_commands.describe(member="Target member")
 async def slash_level(interaction: discord.Interaction, member: discord.Member = None):
     target = member or interaction.user
     xp = user_xp[target.id]
     lvl = xp // 100
-    embed = discord.Embed(title=f"📊 Level Stats for {target.name}", color=discord.Color.blue())
-    embed.add_field(name="✨ XP", value=f"**{xp}**", inline=True)
-    embed.add_field(name="🏆 Level", value=f"**{lvl}**", inline=True)
+    embed = discord.Embed(title=f"📊 Stats for {target.name}", color=discord.Color.blue())
+    embed.add_field(name="XP", value=f"**{xp}**", inline=True)
+    embed.add_field(name="Level", value=f"**{lvl}**", inline=True)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# ==================== خادم الويب وتشغيل البوت ====================
+# ==================== خادم الويب وتشغيل البوت 24/7 ====================
 
 app = Flask(__name__)
 
@@ -682,7 +738,7 @@ def run_bot():
     if token:
         bot.run(token)
     else:
-        print("❌ Error: DISCORD_TOKEN not found in environment variables!")
+        print("❌ Error: DISCORD_TOKEN not found!")
 
 bot_thread = threading.Thread(target=run_bot)
 bot_thread.daemon = True
