@@ -7,6 +7,7 @@ from datetime import timedelta
 from collections import defaultdict
 import threading
 import os
+import random
 from flask import Flask
 
 # ==================== الإعدادات الأساسية ====================
@@ -36,7 +37,7 @@ OWNER_IDS = [1335193543660273716]
 # 🔗 رابط سيرفر ديسكورد المستثنى من الحذف
 MY_SERVER_INVITE = "discord.gg/voidcraft"
 
-# 🎥 المنصات المسموح بنشر روابطها وفيديوهاتها ورسائلها القصيرة (Reels/Shorts)
+# 🎥 المنصات المسموح بنشر روابطها
 ALLOWED_PLATFORMS = [
     "youtube.com", "youtu.be", 
     "tiktok.com", 
@@ -47,20 +48,20 @@ ALLOWED_PLATFORMS = [
     "twitter.com", "x.com"
 ]
 
-# ⚠️ الامتدادات والملفات المشبوهة والممنوعة نهائياً لحماية أجهزة الأعضاء
+# ⚠️ الامتدادات الممنوعة لحماية الأعضاء
 DANGEROUS_EXTENSIONS = [
     '.exe', '.scr', '.bat', '.cmd', '.vbs', '.js', '.jse', '.wsf', '.wsh',
     '.ps1', '.msi', '.com', '.pif', '.reg', '.dll', '.iso', '.dmg',
     '.apk', '.zip', '.rar', '.7z', '.tar', '.gz'
 ]
 
-# ==================== قاموس اللغات العالمي المطور (Global Translations) ====================
+# ==================== قاموس اللغات العالمي ====================
 
 TRANSLATIONS = {
     "en": {
-        "staff_only": "❌ Error: This command is restricted to server staff only!",
-        "owner_only": "❌ Error: This command is restricted to the server Owner/Bot Owner only!",
-        "admin_channel_err": "❌ Error: You cannot execute staff commands in public channels! Please use designated staff channels.",
+        "staff_only": "❌ Error: Restricted to server staff only!",
+        "owner_only": "❌ Error: Restricted to server Owner/Bot Owner only!",
+        "admin_channel_err": "❌ Error: Staff commands can only be used in designated staff channels!",
         "log_title": "🚨 [Punishment Log - {type}]",
         "target": "👤 Target Member",
         "executor": "🛡️ Executor",
@@ -71,9 +72,8 @@ TRANSLATIONS = {
         "sec_title": "🛡️ Security & Auto-Protection Systems",
         "mod_title": "🔨 Moderation & Punishments",
         "ctrl_title": "⚙️ Channel & Server Control",
-        "setup_title": "🎫 Setup & Configurations",
-        "lang_changed": "🌐 Server language changed successfully to: **{lang}**",
-        "lang_error": "❌ Unsupported language code! Supported: en, ar, fr, es, de, tr, ru."
+        "setup_title": "🎫 Setup & Giveaways",
+        "lang_changed": "🌐 Server language successfully set to: **{lang}**"
     },
     "ar": {
         "staff_only": "❌ عذراً، هذا الأمر مخصص للإدارة فقط!",
@@ -87,11 +87,10 @@ TRANSLATIONS = {
         "help_title": "🤖 لوحة أوامر الأعضاء - VoidCraft",
         "admin_help_title": "🛠️ لوحة أوامر الإدارة الشاملة - VoidCraft",
         "sec_title": "🛡️ أنظمة الأمان والحماية التلقائية",
-        "mod_title": "🔨 أداوات الإدارة والعقوبات",
+        "mod_title": "🔨 أدوات الإدارة والعقوبات",
         "ctrl_title": "⚙️ التحكم بالقنوات والسيرفر",
-        "setup_title": "🎫 الإعدادات والتكتات",
-        "lang_changed": "🌐 تم تغيير لغة السيرفر بنجاح إلى: **{lang}**",
-        "lang_error": "❌ رمز اللغة غير مدعوم! اللغات المتاحة: en, ar, fr, es, de, tr, ru."
+        "setup_title": "🎫 الإعدادات والمسابقات",
+        "lang_changed": "🌐 تم تغيير لغة السيرفر بنجاح إلى: **{lang}**"
     },
     "fr": {
         "staff_only": "❌ Erreur : Commande réservée au staff !",
@@ -107,9 +106,8 @@ TRANSLATIONS = {
         "sec_title": "🛡️ Sécurité & Protection Automatique",
         "mod_title": "🔨 Modération & Sanctions",
         "ctrl_title": "⚙️ Contrôle des salons",
-        "setup_title": "🎫 Configuration & Tickets",
-        "lang_changed": "🌐 Langue changée en : **{lang}**",
-        "lang_error": "❌ Code non supporté !"
+        "setup_title": "🎫 Configuration & Concours",
+        "lang_changed": "🌐 Langue changée en : **{lang}**"
     },
     "es": {
         "staff_only": "❌ ¡Error: Comando solo para el staff!",
@@ -125,9 +123,8 @@ TRANSLATIONS = {
         "sec_title": "🛡️ Seguridad y Autoprotección",
         "mod_title": "🔨 Moderación y Castigos",
         "ctrl_title": "⚙️ Control de canales",
-        "setup_title": "🎫 Configuración y Tickets",
-        "lang_changed": "🌐 Idioma cambiado a: **{lang}**",
-        "lang_error": "❌ ¡Código no soportado!"
+        "setup_title": "🎫 Configuración y Sorteos",
+        "lang_changed": "🌐 Idioma cambiado a: **{lang}**"
     },
     "de": {
         "staff_only": "❌ Fehler: Nur für Teammitglieder!",
@@ -143,9 +140,8 @@ TRANSLATIONS = {
         "sec_title": "🛡️ Sicherheit & Schutz",
         "mod_title": "🔨 Moderation & Strafen",
         "ctrl_title": "⚙️ Kanalsteuerung",
-        "setup_title": "🎫 Einstellungen & Tickets",
-        "lang_changed": "🌐 Sprache geändert auf: **{lang}**",
-        "lang_error": "❌ Nicht unterstützter Code!"
+        "setup_title": "🎫 Einstellungen & Gewinnspiele",
+        "lang_changed": "🌐 Sprache geändert auf: **{lang}**"
     },
     "tr": {
         "staff_only": "❌ Hata: Bu komut sadece yetkililer içindir!",
@@ -161,9 +157,8 @@ TRANSLATIONS = {
         "sec_title": "🛡️ Güvenlik ve Otomatik Koruma",
         "mod_title": "🔨 Yönetim ve Cezalar",
         "ctrl_title": "⚙️ Kanal Denetimi",
-        "setup_title": "🎫 Kurulum ve Biletler",
-        "lang_changed": "🌐 Sunucu dili değiştirildi: **{lang}**",
-        "lang_error": "❌ Desteklenmeyen dil kodu!"
+        "setup_title": "🎫 Kurulum ve Çekilişler",
+        "lang_changed": "🌐 Sunucu dili değiştirildi: **{lang}**"
     },
     "ru": {
         "staff_only": "❌ Ошибка: Только для администрации!",
@@ -179,9 +174,8 @@ TRANSLATIONS = {
         "sec_title": "🛡️ Безопасность и Автозащита",
         "mod_title": "🔨 Модерация и Наказания",
         "ctrl_title": "⚙️ Управление каналами",
-        "setup_title": "🎫 Настройки и Тикеты",
-        "lang_changed": "🌐 Язык сервера изменен на: **{lang}**",
-        "lang_error": "❌ Неподдерживаемый код языка!"
+        "setup_title": "🎫 Настройки и Розыгрыши",
+        "lang_changed": "🌐 Язык сервера изменен на: **{lang}**"
     }
 }
 
@@ -232,7 +226,7 @@ async def send_punishment_log(guild, member, executor, punishment_type, reason, 
         try: await logs_channel.send(embed=embed)
         except Exception as e: print(f"Error audit log: {e}")
 
-# ==================== أحداث البوت ====================
+# ==================== أحداث البوت المباشرة ====================
 
 @bot.event
 async def on_ready():
@@ -288,23 +282,28 @@ async def check_admin_channel(interaction: discord.Interaction):
         return False
     return True
 
-# ==================== أمر إعداد اللغة ====================
+# ==================== أمر إعداد اللغة القائم على الخيارات ====================
 
-@bot.tree.command(name="setlanguage", description="Change bot language (Supported: en, ar, fr, es, de, tr, ru)")
-@app_commands.describe(language_code="Language code (en, ar, fr, es, de, tr, ru)")
-async def setlanguage(interaction: discord.Interaction, language_code: str):
+@bot.tree.command(name="setlanguage", description="Change bot language for this server")
+@app_commands.choices(language_code=[
+    app_commands.Choice(name="🇺🇸 English", value="en"),
+    app_commands.Choice(name="🇸🇦 العربية", value="ar"),
+    app_commands.Choice(name="🇫🇷 Français", value="fr"),
+    app_commands.Choice(name="🇪🇸 Español", value="es"),
+    app_commands.Choice(name="🇩🇪 Deutsch", value="de"),
+    app_commands.Choice(name="🇹🇷 Türkçe", value="tr"),
+    app_commands.Choice(name="🇷🇺 Русский", value="ru")
+])
+async def setlanguage(interaction: discord.Interaction, language_code: app_commands.Choice[str]):
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
         await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
         return
     
-    code = language_code.lower()
-    if code in TRANSLATIONS:
-        server_languages[interaction.guild.id] = code
-        await interaction.response.send_message(get_text(interaction.guild.id, "lang_changed", lang=code.upper()))
-    else:
-        await interaction.response.send_message(get_text(interaction.guild.id, "lang_error"), ephemeral=True)
+    code = language_code.value
+    server_languages[interaction.guild.id] = code
+    await interaction.response.send_message(get_text(interaction.guild.id, "lang_changed", lang=language_code.name))
 
-# ==================== أوامر المساعدة المحدثة مع التقسيم الكامل ====================
+# ==================== أوامر المساعدة الشاملة ====================
 
 @bot.tree.command(name="help", description="General member command list")
 async def help_command(interaction: discord.Interaction):
@@ -340,7 +339,7 @@ async def adminhelp(interaction: discord.Interaction):
     )
     embed.add_field(name=get_text(interaction.guild.id, "mod_title"), value=mod_text, inline=False)
 
-    # 🛡️ 2. Security & Protection
+    # 🛡️ 2. Security & Auto-Protection
     sec_text = (
         "⚡ **Anti-Exe / Anti-Malware:** Auto-mutes and kicks suspicious file uploads\n"
         "⚡ **Anti-Discord Invite:** Auto-mutes external Discord server invite spam\n"
@@ -349,7 +348,7 @@ async def adminhelp(interaction: discord.Interaction):
     )
     embed.add_field(name=get_text(interaction.guild.id, "sec_title"), value=sec_text, inline=False)
 
-    # ⚙️ 3. Channel & Server Control
+    # ⚙️ 3. Channel Control
     ctrl_text = (
         "🔒 `/lock` - Lock current channel (Owner)\n"
         "🔓 `/unlock` - Unlock current channel (Owner)\n"
@@ -357,15 +356,56 @@ async def adminhelp(interaction: discord.Interaction):
     )
     embed.add_field(name=get_text(interaction.guild.id, "ctrl_title"), value=ctrl_text, inline=False)
 
-    # 🎫 4. Setup & Configurations
+    # 🎫 4. Setup & Giveaways
     setup_text = (
         "🎫 `/setup_tickets` - Deploy interactive support ticket panel (Owner)\n"
-        "🌐 `/setlanguage [code]` - Change bot language for current server (Owner)"
+        "🎁 `/giveaway [prize] [duration_minutes]` - Start an automated giveaway\n"
+        "🌐 `/setlanguage` - Select server language from dropdown list (Owner)"
     )
     embed.add_field(name=get_text(interaction.guild.id, "setup_title"), value=setup_text, inline=False)
 
     embed.set_footer(text="VoidCraft Ecosystem - Advanced Admin Protection")
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+# ==================== نظام المسابقات والسحوبات التفاعلي (Giveaway System) ====================
+
+class GiveawayView(discord.ui.View):
+    def __init__(self, prize):
+        super().__init__(timeout=None)
+        self.prize = prize
+        self.participants = set()
+
+    @discord.ui.button(label="🎉 Enter Giveaway", style=discord.ButtonStyle.success, custom_id="enter_giveaway_btn")
+    async def enter_giveaway(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id in self.participants:
+            await interaction.response.send_message("❌ You have already entered this giveaway!", ephemeral=True)
+        else:
+            self.participants.add(interaction.user.id)
+            await interaction.response.send_message(f"🎉 You successfully entered the giveaway for **{self.prize}**!", ephemeral=True)
+
+@bot.tree.command(name="giveaway", description="Start an automated giveaway (Staff only)")
+@app_commands.describe(prize="Prize name", duration_minutes="Duration in minutes")
+async def giveaway(interaction: discord.Interaction, prize: str, duration_minutes: int):
+    if not interaction.user.guild_permissions.manage_events and interaction.user.id not in OWNER_IDS:
+        await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="🎁 GIVEAWAY STARTED!",
+        description=f"Prize: **{prize}**\nDuration: **{duration_minutes}** minutes\nHosted by: {interaction.user.mention}\n\nClick the button below to join!",
+        color=discord.Color.gold()
+    )
+    view = GiveawayView(prize)
+    await interaction.response.send_message(embed=embed, view=view)
+    
+    await asyncio.sleep(duration_minutes * 60)
+    
+    if view.participants:
+        winner_id = random.choice(list(view.participants))
+        winner = interaction.guild.get_member(winner_id)
+        await interaction.channel.send(f"🎉 Congratulations {winner.mention}! You won **{prize}**!")
+    else:
+        await interaction.channel.send(f"🎁 Giveaway for **{prize}** ended. No participants joined.")
 
 # ==================== الأوامر العامة الإضافية ====================
 
@@ -629,7 +669,7 @@ async def on_member_join(member):
         try: await member.add_roles(role)
         except: pass
 
-# ==================== نظام الحماية الشامل ====================
+# ==================== نظام الحماية الشامل والأوتوماتيكي ====================
 
 @bot.event
 async def on_message(message):
@@ -702,6 +742,7 @@ async def on_message(message):
     current_xp = user_xp[author_id]
     level = current_xp // 100
 
+    # 🎖️ مكافآت الرتب التلقائية مع المستويات
     if current_xp > 0 and current_xp % 100 == 0:
         levels_channel = (discord.utils.get(message.guild.text_channels, name="levels") or 
                           discord.utils.get(message.guild.text_channels, name="المستويات") or 
@@ -709,6 +750,13 @@ async def on_message(message):
         if levels_channel:
             try: await levels_channel.send(f"🎉 Congrats {message.author.mention}! Level **{level}**! 🚀")
             except: pass
+
+        # إضافة رتبة تلقائية عند الوصول لمستوى 5
+        if level == 5:
+            active_role = discord.utils.get(message.guild.roles, name="Active Player")
+            if active_role:
+                try: await message.author.add_roles(active_role)
+                except: pass
 
     await bot.process_commands(message)
 
