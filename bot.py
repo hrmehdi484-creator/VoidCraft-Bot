@@ -21,8 +21,12 @@ bot.remove_command('help')
 user_xp = defaultdict(int)
 last_message_time = defaultdict(float)
 last_message_content = defaultdict(str)
-user_violation_count = defaultdict(int)
+user_spam_count = defaultdict(int)
 user_warnings = defaultdict(list)
+
+# 🕒 تخزين سجل المخالفات والعقوبات المتصاعدة مع التصفير بعد 24 ساعة
+# Structure: user_violations[user_id] = {'suspicious_count': int, 'link_count': int, 'last_time': float}
+user_violations = defaultdict(lambda: {'suspicious_count': 0, 'link_count': 0, 'last_time': 0.0})
 
 # 🛡️ آيدي حساب الأونر الخاص بك
 OWNER_IDS = [1335193543660273716]
@@ -115,17 +119,21 @@ async def avatar(interaction: discord.Interaction, member: discord.Member = None
     embed.set_image(url=avatar_url)
     await interaction.response.send_message(embed=embed)
 
-# ==================== أوامر الإدارة والحماية والتحكم ====================
+# ==================== أوامر الإدارة والحماية والتحكم (بالوقت الإجباري) ====================
 
-@bot.tree.command(name="mute", description="إعطاء ميوت (تقييد) لعضو معين")
-@app_commands.describe(member="العضو المراد تقييده", minutes="المدة بالدقائق", reason="السبب")
-async def slash_mute(interaction: discord.Interaction, member: discord.Member, minutes: int = 60, reason: str = "لم يُذكر سبب"):
+@bot.tree.command(name="mute", description="إعطاء ميوت موقت لعضو في السيرفر بالوقت المحدد")
+@app_commands.describe(member="العضو المراد تقييده", minutes="مدة الميوت بالدقائق إجبارياً", reason="سبب الميوت")
+async def slash_mute(interaction: discord.Interaction, member: discord.Member, minutes: int, reason: str = "لم يُذكر سبب"):
     if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
         await interaction.response.send_message("❌ عذراً، لا تمتلك صلاحية إدارة الأعضاء!", ephemeral=True)
         return
 
     if member.id in OWNER_IDS or member.guild_permissions.administrator:
         await interaction.response.send_message("❌ لا يمكنك إعطاء ميوت لهذا الشخص!", ephemeral=True)
+        return
+
+    if minutes <= 0:
+        await interaction.response.send_message("❌ يجب تحديد مدة الميوت بالدقائق (أكبر من 0) لتجنب الميوت الأبدي!", ephemeral=True)
         return
 
     try:
@@ -222,7 +230,7 @@ async def warn(interaction: discord.Interaction, member: discord.Member, reason:
     await interaction.response.send_message(f"⚠️ تم تحذير {member.mention}. السبب: **{reason}** (إجمالي التحذيرات: **{total_warns}**)")
 
 @bot.tree.command(name="warnings", description="عرض تحذيرات عضو معين")
-@app_commands.describe(member="العضو المراد فحص تحذيراته")
+@app_commands.describe(member="العضو والمراد فحص تحذيراته")
 async def warnings(interaction: discord.Interaction, member: discord.Member):
     warns = user_warnings[member.id]
     if not warns:
@@ -457,7 +465,7 @@ async def on_member_join(member):
         except Exception as e:
             print(f"خطأ في إعطاء الرتبة التلقائية: {e}")
 
-# ==================== نظام الحماية الشامل وفحص المرفقات والروابط ====================
+# ==================== نظام الحماية الفولاذي الشامل (على جميع القنوات الحالية والجديدة) ====================
 
 @bot.event
 async def on_message(message):
@@ -477,7 +485,13 @@ async def on_message(message):
                    discord.utils.get(message.guild.text_channels, name="البان") or 
                    discord.utils.get(message.guild.text_channels, name="bans"))
 
-    # 1. فحص المرفقات الحساسة أو الملفات الملغومة للحماية الفولاذية
+    # 🔄 التحقق من مرور 24 ساعة لتصفير العقوبات تلقائياً وإعادتها للصفر
+    user_data = user_violations[author_id]
+    if current_time - user_data['last_time'] > 86400:  # 86400 ثانية = 24 ساعة
+        user_data['suspicious_count'] = 0
+        user_data['link_count'] = 0
+
+    # 1. فحص الملفات المشبوهة والملغومة أو الصور الخبيثة
     has_dangerous_file = False
     detected_file_name = ""
     for attachment in message.attachments:
@@ -490,80 +504,55 @@ async def on_message(message):
     if has_dangerous_file:
         try:
             await message.delete()
-            punishment_time = timedelta(minutes=60)
-            await message.author.timeout(punishment_time, reason=f"إرسال ملفات ملغومة/مشبوهة ({detected_file_name})")
+            user_data['suspicious_count'] += 1
+            user_data['last_time'] = current_time
 
+            # التدرج: أول مرة ميوت 30 دقيقة + طرد، ثم تزيد ساعة لكل مخالفة تالية
+            mute_minutes = 30 + ((user_data['suspicious_count'] - 1) * 60)
+            
+            await message.author.timeout(timedelta(minutes=mute_minutes), reason=f"ملف مشبوه/ملغوم #{user_data['suspicious_count']}")
+            
             alert_text = (
-                f"🚨 **[نظام الحماية الفولاذي - منع البرمجيات الخبيثة]**\n"
+                f"🚨 **[نظام الحماية الفولاذي - منع الملغومات]**\n"
                 f"👤 العضو: {message.author.mention} (`{message.author}`)\n"
-                f"⚠️ التنبيه: تم اكتشاف محاولة إرسال ملف تنفيذي/مشبوه (`{detected_file_name}`) لحماية أجهزة الأعضاء!\n"
-                f"🔇 العقوبة: تم مسح الملف وإعطاؤه ميوت تلقائي لمدة **ساعة كاملة (60 دقيقة)**."
+                f"⚠️ التنبيه: تم محاولة إرسال ملف تنفيذي/مشبوه (`{detected_file_name}`).\n"
+                f"🔇 العقوبة: ميوت لمدة **{mute_minutes} دقيقة** + طرد (Kick) من السيرفر.\n"
+                f"🔄 (سوف يتم تصفير العقوبة تلقائياً بعد 24 ساعة من الالتزام)."
             )
             if ban_channel:
                 await ban_channel.send(alert_text)
-            else:
-                msg = await message.channel.send(alert_text)
-                await discord.utils.sleep_until(time.time() + 7)
-                await msg.delete()
+
+            # تنفيذ الطرد الفوري
+            await message.author.kick(reason=f"إرسال ملفات ملغومة/مشبوهة ({detected_file_name})")
+
         except Exception as e:
-            print(f"خطأ في معالجة الملفات الخبيثة: {e}")
+            print(f"خطأ في تنفيذ عقوبة الملفات المشبوهة: {e}")
         return
 
-    # 2. فحص الروابط المشبوهة مع السماح التام بروابط الميديا والفيديوهات/الريلز والسيرفر المعتمد
+    # 2. فحص روابط الديسكورد الخارجية والروابط العشوائية (مع السماح بالميديا والريلز Shorts/Reels/TikTok)
     is_discord_link = "discord.gg/" in content_lower or "discord.com/invite/" in content_lower
     is_my_server = MY_SERVER_INVITE.lower() in content_lower
     has_any_link = "http://" in content_lower or "https://" in content_lower or "www." in content_lower
-
     is_allowed_link = any(platform in content_lower for platform in ALLOWED_PLATFORMS) or is_my_server
 
-    is_violating_link = False
-    violation_reason = ""
-
     if is_discord_link and not is_my_server:
-        is_violating_link = True
-        violation_reason = "إرسال رابط سيرفر ديسكورد خارجي غير مسموح."
-    elif has_any_link and not is_allowed_link:
-        is_violating_link = True
-        violation_reason = "إرسال روابط خارجية مشبوهة أو غير مصرح بها."
-
-    if is_violating_link:
         try:
             await message.delete()
-            half_hour = timedelta(minutes=30)
-            await message.author.timeout(half_hour, reason=violation_reason)
+            user_data['link_count'] += 1
+            user_data['last_time'] = current_time
+
+            # عقوبة متصاعدة للروابط الخارجية: تبدأ بدقيقة، ثم تتصاعد (1, 5, 15, 30, 60...)
+            link_mutes = [1, 5, 15, 30, 60, 120]
+            mute_mins = link_mutes[min(user_data['link_count'] - 1, len(link_mutes) - 1)]
+
+            await message.author.timeout(timedelta(minutes=mute_mins), reason=f"نشر روابط ديسكورد خارجية (#{user_data['link_count']})")
 
             alert_text = (
-                f"🚨 **[نظام جدار الحماية - فلترة الروابط]**\n"
-                f"👤 العضو: {message.author.mention} (`{message.author}`)\n"
-                f"⚠️ التنبيه: {violation_reason}\n"
-                f"💡 (ملاحظة: المسموح فقط هو روابط YouTube Shorts/Reels/TikTok/Instagram/Snapchat والسيرفر الرسمي).\n"
-                f"🔇 العقوبة: تم إعطاؤه ميوت تلقائي لمدة **30 دقيقة** وحذف الرابط."
-            )
-            if ban_channel:
-                await ban_channel.send(alert_text)
-            else:
-                msg = await message.channel.send(alert_text)
-                await discord.utils.sleep_until(time.time() + 6)
-                await msg.delete()
-        except Exception as e:
-            print(f"خطأ في معالجة الروابط المخالفة: {e}")
-        return
-
-    # 3. مكافحة السبام والتكرار السريع للرسائل (Anti-Spam)
-    if current_time - last_message_time[author_id] < 2.5 and content_lower == last_message_content[author_id]:
-        try:
-            await message.delete()
-            user_violation_count[author_id] += 1
-            punish_minutes = user_violation_count[author_id] * 2
-            
-            duration = timedelta(minutes=punish_minutes)
-            await message.author.timeout(duration, reason=f"مكافحة السبام وتكرار الرسائل (المخالفة #{user_violation_count[author_id]})")
-            
-            alert_text = (
-                f"⚠️ **[نظام مكافحة السبام التلقائي]**\n"
+                f"🚨 **[نظام الحماية - منع الإعلانات الخارجية]**\n"
                 f"👤 العضو: {message.author.mention}\n"
-                f"💬 المخالفة: تكرار إرسال الرسائل المتشابهة بوقت قصير جداً.\n"
-                f"🔇 العقوبة المتصاعدة: تم إعطاؤه ميوت لمدة **{punish_minutes} دقيقة**."
+                f"⚠️ المخالفة: نشر رابط سيرفر ديسكورد خارجي.\n"
+                f"🔇 العقوبة المتصاعدة: ميوت لمدة **{mute_mins} دقيقة**.\n"
+                f"🔄 (تتصفّر السجلات بعد 24 ساعة تلقائياً)."
             )
             if ban_channel:
                 await ban_channel.send(alert_text)
@@ -571,6 +560,37 @@ async def on_message(message):
                 msg = await message.channel.send(alert_text)
                 await discord.utils.sleep_until(time.time() + 5)
                 await msg.delete()
+
+        except Exception as e:
+            print(f"خطأ في حماية الروابط الخارجية: {e}")
+        return
+
+    elif has_any_link and not is_allowed_link:
+        try:
+            await message.delete()
+            msg = await message.channel.send(f"⚠️ {message.author.mention} يُسمح فقط بنشر مقاطع الفيديوهات والريلز المصرح بها (YouTube Shorts/Reels/TikTok)!")
+            await discord.utils.sleep_until(time.time() + 5)
+            await msg.delete()
+        except Exception as e:
+            print(f"خطأ في معالجة الروابط العادية: {e}")
+        return
+
+    # 3. مكافحة السبام والتكرار السريع للرسائل
+    if current_time - last_message_time[author_id] < 2.5 and content_lower == last_message_content[author_id]:
+        try:
+            await message.delete()
+            user_spam_count[author_id] += 1
+            punish_minutes = user_spam_count[author_id] * 2
+            
+            await message.author.timeout(timedelta(minutes=punish_minutes), reason="تكرار وسبام الرسائل")
+            
+            alert_text = (
+                f"⚠️ **[نظام مكافحة السبام]**\n"
+                f"👤 العضو: {message.author.mention}\n"
+                f"🔇 العقوبة: ميوت لمدة **{punish_minutes} دقيقة** بسبب تكرار السبام."
+            )
+            if ban_channel:
+                await ban_channel.send(alert_text)
         except Exception as e:
             print(f"خطأ في معالجة السبام: {e}")
         return
@@ -578,7 +598,7 @@ async def on_message(message):
     last_message_time[author_id] = current_time
     last_message_content[author_id] = content_lower
 
-    # 4. نظام الخبرة (XP) والتفاعل
+    # 4. نظام الخبرة والمستويات (XP)
     user_xp[author_id] += 10
     current_xp = user_xp[author_id]
     level = current_xp // 100
