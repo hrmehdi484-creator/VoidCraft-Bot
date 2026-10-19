@@ -360,53 +360,90 @@ async def clear_user(interaction: discord.Interaction, member: discord.Member, a
     deleted = await interaction.channel.purge(limit=min(amount, 100), check=lambda m: m.author == member)
     await interaction.followup.send(f"🧹 Cleared **{len(deleted)}** messages from {member.mention}.", ephemeral=True)
 
-# ==================== 👑 لوحة أوامر الأونر الحصرية الحقيقية ====================
+# ==================== 👑 لوحة الأونر الشاملة لكل أوامر البوت ====================
 
-@bot.tree.command(name="ownerhelp", description="Ultimate VIP Command Panel (Bot Owner Only)")
+@bot.tree.command(name="ownerhelp", description="Full Master Control Panel for Bot Owner (All Commands Included)")
 async def ownerhelp(interaction: discord.Interaction):
+    # 🔒 التحقق المشدد: مخصص حصرياً لأونر البوت أو مالك السيرفر
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
         return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
 
-    embed = discord.Embed(title=get_text(interaction.guild.id, "owner_help_title"), color=discord.Color.gold())
+    embed = discord.Embed(
+        title="👑 Master Owner Control Panel - VoidCraft",
+        description="جميع أوامر البوت والسيرفر المتاحة تحت تصرفك الكامل في مكان واحد:",
+        color=discord.Color.gold()
+    )
     
+    # 👑 1. قسم إدارة الأدوار والصلاحيات (Role Management)
     roles_cmd = (
-        "👑 `/giverole [member] [role]` - Assign role to member\n"
-        "👑 `/removerole [member] [role]` - Remove role from member\n"
-        "👑 `/roleall [role]` - Mass assign role to ALL members"
+        "• `/giverole [member] [role]` - منح رتبة لعضو معّين\n"
+        "• `/removerole [member] [role]` - سحب رتبة من عضو معّين\n"
+        "• `/roleall [role]` - منح رتبة لجميع أعضاء السيرفر دفعة واحدة"
     )
-    embed.add_field(name="🎭 Role Management System", value=roles_cmd, inline=False)
+    embed.add_field(name="🎭 1. إدارة الرتب والأدوار", value=roles_cmd, inline=False)
 
+    # 🛠️ 2. قسم التحكم بالقنوات والتطهير (Channel Control & Purge)
     channels_cmd = (
-        "⚡ `/nuke` - Clone & purge channel history completely\n"
-        "⚡ `/createchannel [name] [is_voice]` - Create text/voice channel\n"
-        "⚡ `/deletechannel [channel]` - Delete a channel instantly\n"
-        "⚡ `/lock` / `/unlock` - Instantly lock/unlock channel\n"
-        "⚡ `/slowmode [seconds]` - Control channel slowmode"
+        "• `/nuke` - نسخ القناة وإعادة إنشائها لمسح كل الرسائل بلمسة واحدة\n"
+        "• `/createchannel [name] [is_voice]` - إنشاء قناة نصية أو صوتية فوراً\n"
+        "• `/deletechannel [channel]` - حذف القناة المحددة فوراً\n"
+        "• `/lock` / `/unlock` - قفل أو فتح الكتابة في القناة الحالية\n"
+        "• `/slowmode [seconds]` - ضبط وتحديد زمن الوضع البطئ بالثواني\n"
+        "• `/clear [amount]` - مسح عدد محدد من الرسائل (1-100)\n"
+        "• `/clear_bots [amount]` - تنظيف ومسح رسائل البوتات فقط\n"
+        "• `/clear_user [member] [amount]` - مسح رسائل عضو محدد فقط"
     )
-    embed.add_field(name="🛠️ Channel Control & Purge", value=channels_cmd, inline=False)
+    embed.add_field(name="🛠️ 2. التحكم بالقنوات والتنظيف الشامل", value=channels_cmd, inline=False)
 
+    # 🔨 3. قسم العقوبات والإدارة (Moderation & Punishments)
+    mod_cmd = (
+        "• `/mute [member] [minutes] [reason]` - إسكات عضو لمدة محددة بالدقائق\n"
+        "• `/unmute [member]` - فك الإسكات والكتم عن العضو\n"
+        "• `/kick [member] [reason]` - طرد عضو خارج السيرفر\n"
+        "• `/ban [member] [reason]` - حظر عضو نهائياً من السيرفر\n"
+        "• `/unban [user_id]` - فك الحظر عن آيدي حساب محدد\n"
+        "• `/warn [member] [reason]` - إعطاء تحذير مسجل بحق عضو\n"
+        "• `/infractions [member]` - عرض سجل التحذيرات والمخالفات المسجلة"
+    )
+    embed.add_field(name="🔨 3. إدارة العقوبات والأعضاء", value=mod_cmd, inline=False)
+
+    # 🎙️ 4. قسم التحكم بالرومات الصوتية (Voice Control System)
     voice_cmd = (
-        "🎙️ `/vmute [member]` - Mute member in voice\n"
-        "🎙️ `/vunmute [member]` - Unmute member in voice\n"
-        "🎙️ `/vkick [member]` - Disconnect member from voice"
+        "• `/vmute [member]` - كتم صوت عضو داخل الرومات الصوتية\n"
+        "• `/vunmute [member]` - فك الكتم الصوتي عن العضو\n"
+        "• `/vkick [member]` - إخراج وطرد عضو من القناة الصوتية"
     )
-    embed.add_field(name="🎙️ Voice Control System", value=voice_cmd, inline=False)
+    embed.add_field(name="🎙️ 4. التحكم الصوتي (Voice)", value=voice_cmd, inline=False)
 
+    # 📢 5. قسم البرودكاست والإعدادات والتعديل (Broadcast & Settings)
     broad_cmd = (
-        "📢 `/embed [title] [description]` - Broadcast rich custom embed\n"
-        "📢 `/say [message]` - Make bot talk in channel\n"
-        "📢 `/nick [member] [nickname]` - Change member nickname"
+        "• `/embed [title] [description]` - إرسال برودكاست مظلل ومصمم (Embed)\n"
+        "• `/say [message]` - جعل البوت يتحدث ويكتب باسمه في الشات\n"
+        "• `/nick [member] [nickname]` - تغيير اسم/لقب أي عضو داخل السيرفر\n"
+        "• `/setlanguage` - تغيير لغة السيرفر والبوت بقائمة منسدلة"
     )
-    embed.add_field(name="📢 Announcements & Utility", value=broad_cmd, inline=False)
+    embed.add_field(name="📢 5. الإعلانات والتعديل واللغة", value=broad_cmd, inline=False)
 
+    # 🎫 6. قسم الأنظمة التفاعلية والمسابقات (Tickets & Giveaways)
     setup_cmd = (
-        "🎫 `/setup_tickets` - Deploy interactive support ticket panel\n"
-        "🎁 `/giveaway [prize] [duration]` - Host automated giveaway\n"
-        "🌐 `/setlanguage` - Select server language from dropdown list"
+        "• `/setup_tickets` - نشر لوحة الدعم الفني والتكتات التفاعلية\n"
+        "• `/giveaway [prize] [duration]` - بدء مسابقة وسحب تفاعلي مع مؤقت"
     )
-    embed.add_field(name="⚙️ Configuration & Setup", value=setup_cmd, inline=False)
+    embed.add_field(name="🎫 6. التكتات والمسابقات التلقائية", value=setup_cmd, inline=False)
 
-    embed.set_footer(text="VoidCraft VIP Suite - Premium Edition")
+    # 🪙 7. قسم الاقتصاد والألعاب والمعلومات العامة (Economy, Fun & Stats)
+    general_cmd = (
+        "• `/level [member]` - فحص مستوى العضو ونقاط خبرته (XP)\n"
+        "• `/daily` - استلام المكافأة اليومية المجانية\n"
+        "• `/balance [member]` - فحص الرصيد المالي للحساب\n"
+        "• `/pay [member] [amount]` - تحويل وإهداء الأموال بين الأعضاء\n"
+        "• `/quiz` / `/roll` - ألعاب مسابقات ثنائية وتسلية حلال\n"
+        "• `/userinfo` / `/avatar` - عرض معلومات البروفايل والصورة الشخصية\n"
+        "• `/serverinfo` / `/botinfo` / `/ping` - عرض إحصائيات السيرفر والبوت وسرعة الاتصال"
+    )
+    embed.add_field(name="🌐 7. الاقتصاد، التسلية، والإحصائيات العامة", value=general_cmd, inline=False)
+
+    embed.set_footer(text="VoidCraft Master Control Panel • Reserved for Owner Only")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 # ==================== أوامر الأونر الـ VIP الفردية ====================
