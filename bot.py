@@ -56,7 +56,7 @@ DANGEROUS_EXTENSIONS = [
     '.apk', '.zip', '.rar', '.7z', '.tar', '.gz'
 ]
 
-# ==================== قاموس الترجمة الشامل لكافة اللغات ====================
+# ==================== قاموس الترجمة الشامل ====================
 
 TRANSLATIONS = {
     "en": {
@@ -69,7 +69,8 @@ TRANSLATIONS = {
         "duration": "⏱️ Duration",
         "reason": "📜 Reason",
         "help_title": "🤖 Member Command Panel - VoidCraft",
-        "admin_help_title": "🛠️ Owner & Staff Command Panel - VoidCraft",
+        "admin_help_title": "🛠️ Staff Command Panel - VoidCraft",
+        "owner_help_title": "👑 Ultimate Owner VIP Command Panel - VoidCraft",
         "sec_title": "🛡️ Security & Auto-Protection Systems",
         "mod_title": "🔨 Moderation & Punishments System",
         "ctrl_title": "⚙️ Channel & Server Control",
@@ -81,116 +82,22 @@ TRANSLATIONS = {
     "ar": {
         "staff_only": "❌ عذراً، هذا الأمر مخصص للإدارة فقط!",
         "owner_only": "❌ عذراً، هذا الأمر مخصص حصرياً لأونر البوت / مالك السيرفر فقط!",
-        "admin_channel_err": "❌ تنبيه أمني: يمنع استخدام أوامر الإدارة في القنوات العامة! تم توثيق المحاولة في السجلات.",
+        "admin_channel_err": "❌ تنبيه أمني: يمنع استخدام أوامر الإدارة في القنوات العامة! تم توثيق المحاولة.",
         "log_title": "🚨 [سجل عقوبة - {type}]",
         "target": "👤 العضو المُعاقَب",
         "executor": "🛡️ المنفذ",
         "duration": "⏱️ المدة",
         "reason": "📜 السبب",
         "help_title": "🤖 لوحة أوامر الأعضاء - VoidCraft",
-        "admin_help_title": "🛠️ لوحة أوامر الأونر والإدارة الشاملة - VoidCraft",
+        "admin_help_title": "🛠️ لوحة أوامر الإدارة - VoidCraft",
+        "owner_help_title": "👑 لوحة أوامر الأونر الVIP الفاخرة - VoidCraft",
         "sec_title": "🛡️ أنظمة الأمان والحماية التلقائية",
-        "mod_title": "🔨 نظام العقوبات وإزالة العقوبات والإدارة",
+        "mod_title": "🔨 نظام العقوبات وإدارة الأعضاء",
         "ctrl_title": "⚙️ التحكم بالقنوات والسيرفر",
         "setup_title": "🎫 الإعدادات والمسابقات والتكتات",
         "lang_changed": "🌐 تم تغيير لغة السيرفر بنجاح إلى: **{lang}**",
         "warn_removed": "✅ تم حذف التحذير رقم **{index}** من العضو {member}.",
         "warn_cleared": "🧹 تم مسح جميع التحذيرات المسجلة بحق العضو {member}."
-    },
-    "fr": {
-        "staff_only": "❌ Erreur : Commande réservée au staff !",
-        "owner_only": "❌ Erreur : Réservé AU PROPRIÉTAIRE UNIQUEMENT !",
-        "admin_channel_err": "❌ ALERTE SÉCURITÉ : Interdit dans les salons publics !",
-        "log_title": "🚨 [Sanction - {type}]",
-        "target": "👤 Cible",
-        "executor": "🛡️ Exécuteur",
-        "duration": "⏱️ Durée",
-        "reason": "📜 Raison",
-        "help_title": "🤖 Panneau des membres - VoidCraft",
-        "admin_help_title": "🛠️ Panneau d'administration - VoidCraft",
-        "sec_title": "🛡️ Sécurité & Protection Automatique",
-        "mod_title": "🔨 Système de Modération & Sanctions",
-        "ctrl_title": "⚙️ Contrôle des salons",
-        "setup_title": "🎫 Configuration, Tickets & Concours",
-        "lang_changed": "🌐 Langue changée en : **{lang}**",
-        "warn_removed": "✅ Avertissement **{index}** supprimé pour {member}.",
-        "warn_cleared": "🧹 Tous les avertissements ont été effacés pour {member}."
-    },
-    "es": {
-        "staff_only": "❌ ¡Error: Comando solo para el staff!",
-        "owner_only": "❌ ¡Error: Reservado SOLO para el Dueño!",
-        "admin_channel_err": "❌ ALERTA DE SEGURIDAD: ¡Prohibido en canales públicos!",
-        "log_title": "🚨 [Castigo - {type}]",
-        "target": "👤 Usuario",
-        "executor": "🛡️ Ejecutor",
-        "duration": "⏱️ Duración",
-        "reason": "📜 Razón",
-        "help_title": "🤖 Panel de miembros - VoidCraft",
-        "admin_help_title": "🛠️ Panel de administración - VoidCraft",
-        "sec_title": "🛡️ Seguridad y Autoprotección",
-        "mod_title": "🔨 Sistema de Moderación y Sanciones",
-        "ctrl_title": "⚙️ Control de canales",
-        "setup_title": "🎫 Configuración, Tickets y Sorteos",
-        "lang_changed": "🌐 Idioma cambiado a: **{lang}**",
-        "warn_removed": "✅ Advertencia **{index}** eliminada para {member}.",
-        "warn_cleared": "🧹 Se borraron todas las advertencias de {member}."
-    },
-    "de": {
-        "staff_only": "❌ Fehler: Nur für Teammitglieder!",
-        "owner_only": "❌ Fehler: NUR für den Besitzer!",
-        "admin_channel_err": "❌ SICHERHEITSWARNUNG: Nicht in öffentlichen Kanälen erlaubt!",
-        "log_title": "🚨 [Strafe - {type}]",
-        "target": "👤 Mitglied",
-        "executor": "🛡️ Ausführender",
-        "duration": "⏱️ Dauer",
-        "reason": "📜 Grund",
-        "help_title": "🤖 Mitgliedermenü - VoidCraft",
-        "admin_help_title": "🛠️ Adminmenü - VoidCraft",
-        "sec_title": "🛡️ Sicherheit & Schutz",
-        "mod_title": "🔨 Moderation & Strafensystem",
-        "ctrl_title": "⚙️ Kanalsteuerung",
-        "setup_title": "🎫 Einstellungen, Tickets & Gewinnspiele",
-        "lang_changed": "🌐 Sprache geändert auf: **{lang}**",
-        "warn_removed": "✅ Warnung **{index}** für {member} entfernt.",
-        "warn_cleared": "🧹 Alle Warnungen für {member} gelöscht."
-    },
-    "tr": {
-        "staff_only": "❌ Hata: Bu komut sadece yetkililer içindir!",
-        "owner_only": "❌ Hata: SADECE Kurucu yetkisi içindir!",
-        "admin_channel_err": "❌ GÜVENLİK UYARISI: Genel kanallarda kullanılamaz!",
-        "log_title": "🚨 [Ceza Kaydı - {type}]",
-        "target": "👤 Kullanıcı",
-        "executor": "🛡️ Uygulayan",
-        "duration": "⏱️ Süre",
-        "reason": "📜 Sebep",
-        "help_title": "🤖 Üye Menüsü - VoidCraft",
-        "admin_help_title": "🛠️ Yetkili Menüsü - VoidCraft",
-        "sec_title": "🛡️ Güvenlik ve Otomatik Koruma",
-        "mod_title": "🔨 Yönetim ve Cezalandırma Sistemi",
-        "ctrl_title": "⚙️ Kanal Denetimi",
-        "setup_title": "🎫 Kurulum, Biletler ve Çekilişler",
-        "lang_changed": "🌐 Sunucu dili değiştirildi: **{lang}**",
-        "warn_removed": "✅ {member} kullanıcısının **{index}** numaralı uyarısı kaldırıldı.",
-        "warn_cleared": "🧹 {member} kullanıcısının tüm uyarıları temizlendi."
-    },
-    "ru": {
-        "staff_only": "❌ Ошибка: Только для администрации!",
-        "owner_only": "❌ Ошибка: ТОЛЬКО для Владельца!",
-        "admin_channel_err": "❌ ОШИБКА БЕЗОПАСНОСТИ: Запрещено в публичных каналах!",
-        "log_title": "🚨 [Лог наказания - {type}]",
-        "target": "👤 Нарушитель",
-        "executor": "🛡️ Модератор",
-        "duration": "⏱️ Длительность",
-        "reason": "📜 Причина",
-        "help_title": "🤖 Меню участников - VoidCraft",
-        "admin_help_title": "🛠️ Панель администратора - VoidCraft",
-        "sec_title": "🛡️ Безопасность и Автозащита",
-        "mod_title": "🔨 Система модерации и наказаний",
-        "ctrl_title": "⚙️ Управление каналами",
-        "setup_title": "🎫 Настройки, Тикеты и Розыгрыши",
-        "lang_changed": "🌐 Язык сервера изменен на: **{lang}**",
-        "warn_removed": "✅ Предупреждение №**{index}** удалено у {member}.",
-        "warn_cleared": "🧹 Все предупреждения у {member} очищены."
     }
 }
 
@@ -253,29 +160,6 @@ async def on_ready():
     except Exception as e:
         print(f"❌ Sync failed: {e}")
 
-@bot.event
-async def on_message_delete(message):
-    if message.author.bot or message.guild is None: return
-    logs_channel = discord.utils.get(message.guild.text_channels, name="logs")
-    if logs_channel:
-        embed = discord.Embed(title="🗑️ Message Deleted", color=discord.Color.red(), timestamp=discord.utils.utcnow())
-        embed.add_field(name="Author", value=message.author.mention, inline=True)
-        embed.add_field(name="Channel", value=message.channel.mention, inline=True)
-        embed.add_field(name="Content", value=message.content or "[Attachment]", inline=False)
-        await logs_channel.send(embed=embed)
-
-@bot.event
-async def on_message_edit(before, after):
-    if before.author.bot or before.guild is None or before.content == after.content: return
-    logs_channel = discord.utils.get(before.guild.text_channels, name="logs")
-    if logs_channel:
-        embed = discord.Embed(title="✏️ Message Edited", color=discord.Color.blue(), timestamp=discord.utils.utcnow())
-        embed.add_field(name="Author", value=before.author.mention, inline=True)
-        embed.add_field(name="Channel", value=before.channel.mention, inline=True)
-        embed.add_field(name="Before", value=before.content or "None", inline=False)
-        embed.add_field(name="After", value=after.content or "None", inline=False)
-        await logs_channel.send(embed=embed)
-
 # ==================== التحقق من قنوات الإدارة والتحصين ====================
 
 def is_staff_channel(channel):
@@ -291,7 +175,7 @@ async def check_admin_channel(interaction: discord.Interaction):
         if logs_channel:
             embed = discord.Embed(
                 title="🚨 [SECURITY VIOLATION - Public Channel Command Usage]", 
-                description=f"⚠️ **Staff member attempted to run an admin command in a public channel!**\n\n**Action required:** Strip staff roles if unauthorized.",
+                description=f"⚠️ **Staff member attempted to run an admin command in a public channel!**",
                 color=discord.Color.dark_red(), 
                 timestamp=discord.utils.utcnow()
             )
@@ -304,17 +188,179 @@ async def check_admin_channel(interaction: discord.Interaction):
         return False
     return True
 
+# ==================== لوحة أوامر الأونر الـ VIP الفاخرة (Owner Commands) ====================
+
+@bot.tree.command(name="ownerhelp", description="Ultimate VIP Command Panel (Bot Owner Only)")
+async def ownerhelp(interaction: discord.Interaction):
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+        return
+
+    embed = discord.Embed(title=get_text(interaction.guild.id, "owner_help_title"), color=discord.Color.gold())
+    
+    roles_cmd = (
+        "👑 `/giverole [member] [role]` - Give a role to a member\n"
+        "👑 `/removerole [member] [role]` - Remove a role from a member\n"
+        "👑 `/roleall [role]` - Mass assign a role to ALL members"
+    )
+    embed.add_field(name="🎭 Role Management System", value=roles_cmd, inline=False)
+
+    channels_cmd = (
+        "⚡ `/nuke` - Duplicate & purge channel history completely\n"
+        "⚡ `/createchannel [name] [type]` - Instantly create text/voice channel\n"
+        "⚡ `/deletechannel [channel]` - Delete a channel instantly\n"
+        "⚡ `/lock` / `/unlock` - Instantly lock/unlock channel\n"
+        "⚡ `/slowmode [seconds]` - Control channel slowmode"
+    )
+    embed.add_field(name="🛠️ Advanced Channel Management", value=channels_cmd, inline=False)
+
+    voice_cmd = (
+        "🎙️ `/vmute [member]` - Mute member in voice channel\n"
+        "🎙️ `/vunmute [member]` - Unmute member in voice channel\n"
+        "🎙️ `/vkick [member]` - Disconnect member from voice channel"
+    )
+    embed.add_field(name="🎙️ Voice Control System", value=voice_cmd, inline=False)
+
+    broad_cmd = (
+        "📢 `/embed [title] [description] [color]` - Broadcast rich custom embed\n"
+        "📢 `/say [message]` - Make the bot talk in channel\n"
+        "📢 `/nick [member] [nickname]` - Change any member's server nickname"
+    )
+    embed.add_field(name="📢 Announcements & Utility Tools", value=broad_cmd, inline=False)
+
+    setup_cmd = (
+        "🎫 `/setup_tickets` - Deploy interactive support tickets\n"
+        "🎁 `/giveaway [prize] [duration]` - Host automated giveaway\n"
+        "🌐 `/setlanguage [code]` - Switch server language dropdown"
+    )
+    embed.add_field(name="⚙️ Configuration & Setup", value=setup_cmd, inline=False)
+
+    embed.set_footer(text="VoidCraft VIP Suite - Premium Monthly Edition")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+# ==================== أوامر الأونر الـ VIP ====================
+
+@bot.tree.command(name="giverole", description="Give role to member (Owner Only)")
+@app_commands.describe(member="Member", role="Role")
+async def giverole(interaction: discord.Interaction, member: discord.Member, role: discord.Role):
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    await member.add_roles(role)
+    await interaction.response.send_message(f"✅ Added {role.mention} to {member.mention}.")
+
+@bot.tree.command(name="removerole", description="Remove role from member (Owner Only)")
+@app_commands.describe(member="Member", role="Role")
+async def removerole(interaction: discord.Interaction, member: discord.Member, role: discord.Role):
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    await member.remove_roles(role)
+    await interaction.response.send_message(f"✅ Removed {role.mention} from {member.mention}.")
+
+@bot.tree.command(name="roleall", description="Assign role to ALL members (Owner Only)")
+@app_commands.describe(role="Role")
+async def roleall(interaction: discord.Interaction, role: discord.Role):
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    await interaction.response.send_message("⏳ Assigning role to all members, please wait...")
+    for member in interaction.guild.members:
+        try: await member.add_roles(role)
+        except: pass
+    await interaction.followup.send(f"✅ Successfully added {role.mention} to all members!")
+
+@bot.tree.command(name="nuke", description="Clone and clear channel history (Owner Only)")
+async def nuke(interaction: discord.Interaction):
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    channel = interaction.channel
+    pos = channel.position
+    new_channel = await channel.clone(reason="Nuke channel")
+    await channel.delete()
+    await new_channel.edit(position=pos)
+    await new_channel.send("💥 Channel has been Nuked!")
+
+@bot.tree.command(name="createchannel", description="Create new channel (Owner Only)")
+@app_commands.describe(name="Channel name", is_voice="Is Voice channel?")
+async def createchannel(interaction: discord.Interaction, name: str, is_voice: bool = False):
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if is_voice:
+        c = await interaction.guild.create_voice_channel(name)
+    else:
+        c = await interaction.guild.create_text_channel(name)
+    await interaction.response.send_message(f"✅ Created channel {c.mention}.")
+
+@bot.tree.command(name="deletechannel", description="Delete a channel (Owner Only)")
+@app_commands.describe(channel="Target channel")
+async def deletechannel(interaction: discord.Interaction, channel: discord.abc.GuildChannel):
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    await channel.delete()
+    await interaction.response.send_message(f"✅ Channel deleted.")
+
+@bot.tree.command(name="vmute", description="Voice Mute member (Owner Only)")
+@app_commands.describe(member="Member")
+async def vmute(interaction: discord.Interaction, member: discord.Member):
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if member.voice:
+        await member.edit(mute=True)
+        await interaction.response.send_message(f"🔇 Voice muted {member.mention}.")
+    else:
+        await interaction.response.send_message("❌ Member is not in a voice channel!", ephemeral=True)
+
+@bot.tree.command(name="vunmute", description="Voice Unmute member (Owner Only)")
+@app_commands.describe(member="Member")
+async def vunmute(interaction: discord.Interaction, member: discord.Member):
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if member.voice:
+        await member.edit(mute=False)
+        await interaction.response.send_message(f"🔊 Voice unmuted {member.mention}.")
+    else:
+        await interaction.response.send_message("❌ Member is not in a voice channel!", ephemeral=True)
+
+@bot.tree.command(name="vkick", description="Kick member from voice (Owner Only)")
+@app_commands.describe(member="Member")
+async def vkick(interaction: discord.Interaction, member: discord.Member):
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if member.voice:
+        await member.move_to(None)
+        await interaction.response.send_message(f"👢 Kicked {member.mention} from voice channel.")
+    else:
+        await interaction.response.send_message("❌ Member is not in a voice channel!", ephemeral=True)
+
+@bot.tree.command(name="embed", description="Send rich custom embed broadcast (Owner Only)")
+@app_commands.describe(title="Title", description="Description")
+async def embed_cmd(interaction: discord.Interaction, title: str, description: str):
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    emb = discord.Embed(title=title, description=description, color=discord.Color.blue())
+    await interaction.channel.send(embed=emb)
+    await interaction.response.send_message("✅ Broadcast sent!", ephemeral=True)
+
+@bot.tree.command(name="say", description="Make bot talk in channel (Owner Only)")
+@app_commands.describe(message="Message content")
+async def say(interaction: discord.Interaction, message: str):
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    await interaction.channel.send(message)
+    await interaction.response.send_message("✅ Sent!", ephemeral=True)
+
+@bot.tree.command(name="nick", description="Change member nickname (Owner Only)")
+@app_commands.describe(member="Member", nickname="New Nickname")
+async def nick(interaction: discord.Interaction, member: discord.Member, nickname: str):
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    await member.edit(nick=nickname)
+    await interaction.response.send_message(f"✅ Changed nickname for {member.mention} to `{nickname}`.")
+
 # ==================== أمر إعداد اللغة ====================
 
 @bot.tree.command(name="setlanguage", description="Change bot language for this server (Owner Only)")
 @app_commands.choices(language_code=[
     app_commands.Choice(name="🇺🇸 English", value="en"),
-    app_commands.Choice(name="🇸🇦 العربية", value="ar"),
-    app_commands.Choice(name="🇫🇷 Français", value="fr"),
-    app_commands.Choice(name="🇪🇸 Español", value="es"),
-    app_commands.Choice(name="🇩🇪 Deutsch", value="de"),
-    app_commands.Choice(name="🇹🇷 Türkçe", value="tr"),
-    app_commands.Choice(name="🇷🇺 Русский", value="ru")
+    app_commands.Choice(name="🇸🇦 العربية", value="ar")
 ])
 async def setlanguage(interaction: discord.Interaction, language_code: app_commands.Choice[str]):
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
@@ -325,7 +371,7 @@ async def setlanguage(interaction: discord.Interaction, language_code: app_comma
     server_languages[interaction.guild.id] = code
     await interaction.response.send_message(get_text(interaction.guild.id, "lang_changed", lang=language_code.name))
 
-# ==================== أوامر المساعدة الشاملة ====================
+# ==================== أوامر المساعدة العامة والأدمن ====================
 
 @bot.tree.command(name="help", description="General member command list")
 async def help_command(interaction: discord.Interaction):
@@ -339,16 +385,15 @@ async def help_command(interaction: discord.Interaction):
     embed.set_footer(text="VoidCraft Ecosystem - Global Edition")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-@bot.tree.command(name="adminhelp", description="Complete Owner & Staff command list (Owner & Staff Channels Only)")
+@bot.tree.command(name="adminhelp", description="Complete staff command list (Staff Channels Only)")
 async def adminhelp(interaction: discord.Interaction):
-    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
-        await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
+        await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
         return
     if not await check_admin_channel(interaction): return
 
     embed = discord.Embed(title=get_text(interaction.guild.id, "admin_help_title"), color=discord.Color.dark_red())
     
-    # 🔨 1. Moderation & Punishments
     mod_text = (
         "🔇 `/mute [member] [minutes] [reason]` - Timeout a member\n"
         "🔊 `/unmute [member]` - Remove timeout\n"
@@ -363,36 +408,18 @@ async def adminhelp(interaction: discord.Interaction):
     )
     embed.add_field(name=get_text(interaction.guild.id, "mod_title"), value=mod_text, inline=False)
 
-    # 🛡️ 2. Security & Auto-Protection
     sec_text = (
         "⚡ **Anti-Exe / Anti-Malware:** Auto-mutes & kicks suspicious file uploads\n"
         "⚡ **Anti-Discord Invite:** Auto-mutes external Discord server invite spam\n"
         "⚡ **Anti-Spam:** Auto-mutes repeated fast messaging\n"
-        "⚡ **24-Hour Reset:** Automated violation resets after 24 hours\n"
         "⚡ **Public Channel Shield:** Auto-logs any staff attempting commands in public channels"
     )
     embed.add_field(name=get_text(interaction.guild.id, "sec_title"), value=sec_text, inline=False)
 
-    # ⚙️ 3. Channel Control
-    ctrl_text = (
-        "🔒 `/lock` - Lock current channel (Owner)\n"
-        "🔓 `/unlock` - Unlock current channel (Owner)\n"
-        "⏱️ `/slowmode [seconds]` - Set channel slowmode (Owner)"
-    )
-    embed.add_field(name=get_text(interaction.guild.id, "ctrl_title"), value=ctrl_text, inline=False)
-
-    # 🎫 4. Setup & Giveaways
-    setup_text = (
-        "🎫 `/setup_tickets` - Deploy interactive support ticket panel (Owner)\n"
-        "🎁 `/giveaway [prize] [duration_minutes]` - Start an automated giveaway (Owner)\n"
-        "🌐 `/setlanguage` - Select server language from dropdown list (Owner)"
-    )
-    embed.add_field(name=get_text(interaction.guild.id, "setup_title"), value=setup_text, inline=False)
-
-    embed.set_footer(text="VoidCraft Ecosystem - Owner Edition")
+    embed.set_footer(text="VoidCraft Ecosystem - Staff Edition")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# ==================== نظام المسابقات والسحوبات التفاعلي ====================
+# ==================== نظام المسابقات والسحوبات ====================
 
 class GiveawayView(discord.ui.View):
     def __init__(self, prize):
@@ -472,7 +499,7 @@ async def avatar(interaction: discord.Interaction, member: discord.Member = None
     embed.set_image(url=target.avatar.url if target.avatar else target.default_avatar.url)
     await interaction.response.send_message(embed=embed)
 
-# ==================== أوامر الإدارة والعقوبات الشاملة ====================
+# ==================== أوامر الإدارة والعقوبات ====================
 
 @bot.tree.command(name="mute", description="Timeout member")
 @app_commands.describe(member="Target", minutes="Minutes", reason="Reason (Required)")
