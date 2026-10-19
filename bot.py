@@ -49,14 +49,14 @@ ALLOWED_PLATFORMS = [
     "twitter.com", "x.com"
 ]
 
-# ⚠️ الامتدادات الممنوعة لحماية الأعضاء
+# ⚠️ الامتدادات الممنوعة لحماية أجهزة الأعضاء
 DANGEROUS_EXTENSIONS = [
     '.exe', '.scr', '.bat', '.cmd', '.vbs', '.js', '.jse', '.wsf', '.wsh',
     '.ps1', '.msi', '.com', '.pif', '.reg', '.dll', '.iso', '.dmg',
     '.apk', '.zip', '.rar', '.7z', '.tar', '.gz'
 ]
 
-# ==================== قاموس اللغات العالمي ====================
+# ==================== قاموس الترجمة الشامل لكافة اللغات ====================
 
 TRANSLATIONS = {
     "en": {
@@ -71,15 +71,17 @@ TRANSLATIONS = {
         "help_title": "🤖 Member Command Panel - VoidCraft",
         "admin_help_title": "🛠️ Owner & Staff Command Panel - VoidCraft",
         "sec_title": "🛡️ Security & Auto-Protection Systems",
-        "mod_title": "🔨 Moderation & Punishments",
+        "mod_title": "🔨 Moderation & Punishments System",
         "ctrl_title": "⚙️ Channel & Server Control",
-        "setup_title": "🎫 Setup & Configurations",
-        "lang_changed": "🌐 Server language successfully set to: **{lang}**"
+        "setup_title": "🎫 Setup, Tickets & Giveaways",
+        "lang_changed": "🌐 Server language successfully set to: **{lang}**",
+        "warn_removed": "✅ Removed warning index **{index}** from {member}.",
+        "warn_cleared": "🧹 Cleared all warnings for {member}."
     },
     "ar": {
         "staff_only": "❌ عذراً، هذا الأمر مخصص للإدارة فقط!",
         "owner_only": "❌ عذراً، هذا الأمر مخصص حصرياً لأونر البوت / مالك السيرفر فقط!",
-        "admin_channel_err": "❌ تنبيه أمني: يمنع استخدام أوامر الإدارة في القنوات العامة! تم تسجل المحاولة في السجلات.",
+        "admin_channel_err": "❌ تنبيه أمني: يمنع استخدام أوامر الإدارة في القنوات العامة! تم توثيق المحاولة في السجلات.",
         "log_title": "🚨 [سجل عقوبة - {type}]",
         "target": "👤 العضو المُعاقَب",
         "executor": "🛡️ المنفذ",
@@ -88,10 +90,12 @@ TRANSLATIONS = {
         "help_title": "🤖 لوحة أوامر الأعضاء - VoidCraft",
         "admin_help_title": "🛠️ لوحة أوامر الأونر والإدارة الشاملة - VoidCraft",
         "sec_title": "🛡️ أنظمة الأمان والحماية التلقائية",
-        "mod_title": "🔨 أدوات الإدارة والعقوبات",
+        "mod_title": "🔨 نظام العقوبات وإزالة العقوبات والإدارة",
         "ctrl_title": "⚙️ التحكم بالقنوات والسيرفر",
         "setup_title": "🎫 الإعدادات والمسابقات والتكتات",
-        "lang_changed": "🌐 تم تغيير لغة السيرفر بنجاح إلى: **{lang}**"
+        "lang_changed": "🌐 تم تغيير لغة السيرفر بنجاح إلى: **{lang}**",
+        "warn_removed": "✅ تم حذف التحذير رقم **{index}** من العضو {member}.",
+        "warn_cleared": "🧹 تم مسح جميع التحذيرات المسجلة بحق العضو {member}."
     },
     "fr": {
         "staff_only": "❌ Erreur : Commande réservée au staff !",
@@ -105,10 +109,12 @@ TRANSLATIONS = {
         "help_title": "🤖 Panneau des membres - VoidCraft",
         "admin_help_title": "🛠️ Panneau d'administration - VoidCraft",
         "sec_title": "🛡️ Sécurité & Protection Automatique",
-        "mod_title": "🔨 Modération & Sanctions",
+        "mod_title": "🔨 Système de Modération & Sanctions",
         "ctrl_title": "⚙️ Contrôle des salons",
-        "setup_title": "🎫 Configuration & Concours",
-        "lang_changed": "🌐 Langue changée en : **{lang}**"
+        "setup_title": "🎫 Configuration, Tickets & Concours",
+        "lang_changed": "🌐 Langue changée en : **{lang}**",
+        "warn_removed": "✅ Avertissement **{index}** supprimé pour {member}.",
+        "warn_cleared": "🧹 Tous les avertissements ont été effacés pour {member}."
     },
     "es": {
         "staff_only": "❌ ¡Error: Comando solo para el staff!",
@@ -122,10 +128,12 @@ TRANSLATIONS = {
         "help_title": "🤖 Panel de miembros - VoidCraft",
         "admin_help_title": "🛠️ Panel de administración - VoidCraft",
         "sec_title": "🛡️ Seguridad y Autoprotección",
-        "mod_title": "🔨 Moderación y Castigos",
+        "mod_title": "🔨 Sistema de Moderación y Sanciones",
         "ctrl_title": "⚙️ Control de canales",
-        "setup_title": "🎫 Configuración y Sorteos",
-        "lang_changed": "🌐 Idioma cambiado a: **{lang}**"
+        "setup_title": "🎫 Configuración, Tickets y Sorteos",
+        "lang_changed": "🌐 Idioma cambiado a: **{lang}**",
+        "warn_removed": "✅ Advertencia **{index}** eliminada para {member}.",
+        "warn_cleared": "🧹 Se borraron todas las advertencias de {member}."
     },
     "de": {
         "staff_only": "❌ Fehler: Nur für Teammitglieder!",
@@ -139,10 +147,12 @@ TRANSLATIONS = {
         "help_title": "🤖 Mitgliedermenü - VoidCraft",
         "admin_help_title": "🛠️ Adminmenü - VoidCraft",
         "sec_title": "🛡️ Sicherheit & Schutz",
-        "mod_title": "🔨 Moderation & Strafen",
+        "mod_title": "🔨 Moderation & Strafensystem",
         "ctrl_title": "⚙️ Kanalsteuerung",
-        "setup_title": "🎫 Einstellungen & Gewinnspiele",
-        "lang_changed": "🌐 Sprache geändert auf: **{lang}**"
+        "setup_title": "🎫 Einstellungen, Tickets & Gewinnspiele",
+        "lang_changed": "🌐 Sprache geändert auf: **{lang}**",
+        "warn_removed": "✅ Warnung **{index}** für {member} entfernt.",
+        "warn_cleared": "🧹 Alle Warnungen für {member} gelöscht."
     },
     "tr": {
         "staff_only": "❌ Hata: Bu komut sadece yetkililer içindir!",
@@ -156,10 +166,12 @@ TRANSLATIONS = {
         "help_title": "🤖 Üye Menüsü - VoidCraft",
         "admin_help_title": "🛠️ Yetkili Menüsü - VoidCraft",
         "sec_title": "🛡️ Güvenlik ve Otomatik Koruma",
-        "mod_title": "🔨 Yönetim ve Cezalar",
+        "mod_title": "🔨 Yönetim ve Cezalandırma Sistemi",
         "ctrl_title": "⚙️ Kanal Denetimi",
-        "setup_title": "🎫 Kurulum ve Çekilişler",
-        "lang_changed": "🌐 Sunucu dili değiştirildi: **{lang}**"
+        "setup_title": "🎫 Kurulum, Biletler ve Çekilişler",
+        "lang_changed": "🌐 Sunucu dili değiştirildi: **{lang}**",
+        "warn_removed": "✅ {member} kullanıcısının **{index}** numaralı uyarısı kaldırıldı.",
+        "warn_cleared": "🧹 {member} kullanıcısının tüm uyarıları temizlendi."
     },
     "ru": {
         "staff_only": "❌ Ошибка: Только для администрации!",
@@ -173,10 +185,12 @@ TRANSLATIONS = {
         "help_title": "🤖 Меню участников - VoidCraft",
         "admin_help_title": "🛠️ Панель администратора - VoidCraft",
         "sec_title": "🛡️ Безопасность и Автозащита",
-        "mod_title": "🔨 Модерация и Наказания",
+        "mod_title": "🔨 Система модерации и наказаний",
         "ctrl_title": "⚙️ Управление каналами",
-        "setup_title": "🎫 Настройки и Розыгрыши",
-        "lang_changed": "🌐 Язык сервера изменен на: **{lang}**"
+        "setup_title": "🎫 Настройки, Тикеты и Розыгрыши",
+        "lang_changed": "🌐 Язык сервера изменен на: **{lang}**",
+        "warn_removed": "✅ Предупреждение №**{index}** удалено у {member}.",
+        "warn_cleared": "🧹 Все предупреждения у {member} очищены."
     }
 }
 
@@ -204,6 +218,7 @@ async def send_punishment_log(guild, member, executor, punishment_type, reason, 
         "WARN ⚠️": discord.Color.yellow(),
         "UNMUTE 🔊": discord.Color.green(),
         "UNBAN 🔓": discord.Color.blue(),
+        "REMOVE_WARN 🧹": discord.Color.teal(),
         "SECURITY 🚨": discord.Color.dark_red()
     }
 
@@ -261,7 +276,7 @@ async def on_message_edit(before, after):
         embed.add_field(name="After", value=after.content or "None", inline=False)
         await logs_channel.send(embed=embed)
 
-# ==================== التحقق من قنوات الإدارة والـ Protection ====================
+# ==================== التحقق من قنوات الإدارة والتحصين ====================
 
 def is_staff_channel(channel):
     name = channel.name.lower()
@@ -341,6 +356,8 @@ async def adminhelp(interaction: discord.Interaction):
         "🔨 `/ban [member] [reason]` - Ban a member permanently\n"
         "🔓 `/unban [user_id]` - Unban a user by ID\n"
         "⚠️ `/warn [member] [reason]` - Add warning\n"
+        "🧹 `/remove_warning [member] [index]` - Remove a specific warning\n"
+        "🗑️ `/clear_warnings [member]` - Clear all warnings for member\n"
         "📋 `/infractions [member]` - View member warning history\n"
         "🧹 `/clear [amount]` - Purge chat messages (1-100)"
     )
@@ -452,10 +469,10 @@ async def userinfo(interaction: discord.Interaction, member: discord.Member = No
 async def avatar(interaction: discord.Interaction, member: discord.Member = None):
     target = member or interaction.user
     embed = discord.Embed(title=f"🖼️ {target.name}'s Avatar", color=discord.Color.blue())
-    embed.set_image(url=target.avatar.url if target.avatar else target.defaultavatar.url)
+    embed.set_image(url=target.avatar.url if target.avatar else target.default_avatar.url)
     await interaction.response.send_message(embed=embed)
 
-# ==================== أوامر الإدارة والعقوبات ====================
+# ==================== أوامر الإدارة والعقوبات الشاملة ====================
 
 @bot.tree.command(name="mute", description="Timeout member")
 @app_commands.describe(member="Target", minutes="Minutes", reason="Reason (Required)")
@@ -550,6 +567,34 @@ async def warn(interaction: discord.Interaction, member: discord.Member, reason:
     await interaction.response.send_message(f"⚠️ Warned {member.mention}. Reason: `{reason}`")
     await send_punishment_log(interaction.guild, member, interaction.user, "WARN ⚠️", reason, f"Warn #{len(user_warnings[member.id])}")
 
+@bot.tree.command(name="remove_warning", description="Remove a specific warning from a member")
+@app_commands.describe(member="Target member", index="Warning number (1, 2, 3...)")
+async def remove_warning(interaction: discord.Interaction, member: discord.Member, index: int):
+    if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
+        await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
+        return
+    if not await check_admin_channel(interaction): return
+
+    warns = user_warnings[member.id]
+    if 1 <= index <= len(warns):
+        removed_reason = warns.pop(index - 1)
+        await interaction.response.send_message(get_text(interaction.guild.id, "warn_removed", index=index, member=member.mention))
+        await send_punishment_log(interaction.guild, member, interaction.user, "REMOVE_WARN 🧹", f"Removed warning #{index}: {removed_reason}", "None")
+    else:
+        await interaction.response.send_message("❌ Invalid warning index number!", ephemeral=True)
+
+@bot.tree.command(name="clear_warnings", description="Clear all warnings for a member")
+@app_commands.describe(member="Target member")
+async def clear_warnings(interaction: discord.Interaction, member: discord.Member):
+    if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
+        await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
+        return
+    if not await check_admin_channel(interaction): return
+
+    user_warnings[member.id].clear()
+    await interaction.response.send_message(get_text(interaction.guild.id, "warn_cleared", member=member.mention))
+    await send_punishment_log(interaction.guild, member, interaction.user, "REMOVE_WARN 🧹", "Cleared all warnings", "None")
+
 @bot.tree.command(name="infractions", description="Check warnings")
 @app_commands.describe(member="Target")
 async def infractions(interaction: discord.Interaction, member: discord.Member):
@@ -562,6 +607,8 @@ async def infractions(interaction: discord.Interaction, member: discord.Member):
     embed.add_field(name="Warnings", value=f"**{len(warns)}**", inline=True)
     embed.add_field(name="Suspicious Files", value=f"**{data['suspicious_count']}**", inline=True)
     embed.add_field(name="External Links", value=f"**{data['link_count']}**", inline=True)
+    if warns:
+        embed.add_field(name="Warning Details", value="\n".join([f"`#{i+1}` - {w}" for i, w in enumerate(warns)]), inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @bot.tree.command(name="lock", description="Lock channel (Owner Only)")
