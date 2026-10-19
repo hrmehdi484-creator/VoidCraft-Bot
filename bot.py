@@ -8,6 +8,7 @@ from collections import defaultdict
 import threading
 import os
 import random
+import asyncio
 from flask import Flask
 
 # ==================== الإعدادات الأساسية ====================
@@ -31,7 +32,7 @@ user_violations = defaultdict(lambda: {'suspicious_count': 0, 'link_count': 0, '
 # 🌐 تخزين لغة كل سيرفر (الافتراضي: الإنجليزية en)
 server_languages = defaultdict(lambda: "en")
 
-# 🛡️ آيدي حساب الأونر الخاص بك
+# 🛡️ آيدي حساب الأونر الخاص بك (جون)
 OWNER_IDS = [1335193543660273716]
 
 # 🔗 رابط سيرفر ديسكورد المستثنى من الحذف
@@ -60,42 +61,42 @@ DANGEROUS_EXTENSIONS = [
 TRANSLATIONS = {
     "en": {
         "staff_only": "❌ Error: Restricted to server staff only!",
-        "owner_only": "❌ Error: Restricted to server Owner/Bot Owner only!",
-        "admin_channel_err": "❌ Error: Staff commands can only be used in designated staff channels!",
+        "owner_only": "❌ Error: Restricted to Bot Owner / Server Owner ONLY!",
+        "admin_channel_err": "❌ SECURITY ALERT: Staff commands CANNOT be used in public channels! Incident logged.",
         "log_title": "🚨 [Punishment Log - {type}]",
         "target": "👤 Target Member",
         "executor": "🛡️ Executor",
         "duration": "⏱️ Duration",
         "reason": "📜 Reason",
         "help_title": "🤖 Member Command Panel - VoidCraft",
-        "admin_help_title": "🛠️ Staff Command Panel - VoidCraft",
+        "admin_help_title": "🛠️ Owner & Staff Command Panel - VoidCraft",
         "sec_title": "🛡️ Security & Auto-Protection Systems",
         "mod_title": "🔨 Moderation & Punishments",
         "ctrl_title": "⚙️ Channel & Server Control",
-        "setup_title": "🎫 Setup & Giveaways",
+        "setup_title": "🎫 Setup & Configurations",
         "lang_changed": "🌐 Server language successfully set to: **{lang}**"
     },
     "ar": {
         "staff_only": "❌ عذراً، هذا الأمر مخصص للإدارة فقط!",
-        "owner_only": "❌ عذراً، هذا الأمر مخصص لمالك السيرفر أو الأونر فقط!",
-        "admin_channel_err": "❌ عذراً، لا يمكنك تنفيذ الأوامر الإدارية في القنوات العامة! يرجى استخدام قنوات الإدارة.",
+        "owner_only": "❌ عذراً، هذا الأمر مخصص حصرياً لأونر البوت / مالك السيرفر فقط!",
+        "admin_channel_err": "❌ تنبيه أمني: يمنع استخدام أوامر الإدارة في القنوات العامة! تم تسجل المحاولة في السجلات.",
         "log_title": "🚨 [سجل عقوبة - {type}]",
         "target": "👤 العضو المُعاقَب",
         "executor": "🛡️ المنفذ",
         "duration": "⏱️ المدة",
         "reason": "📜 السبب",
         "help_title": "🤖 لوحة أوامر الأعضاء - VoidCraft",
-        "admin_help_title": "🛠️ لوحة أوامر الإدارة الشاملة - VoidCraft",
+        "admin_help_title": "🛠️ لوحة أوامر الأونر والإدارة الشاملة - VoidCraft",
         "sec_title": "🛡️ أنظمة الأمان والحماية التلقائية",
         "mod_title": "🔨 أدوات الإدارة والعقوبات",
         "ctrl_title": "⚙️ التحكم بالقنوات والسيرفر",
-        "setup_title": "🎫 الإعدادات والمسابقات",
+        "setup_title": "🎫 الإعدادات والمسابقات والتكتات",
         "lang_changed": "🌐 تم تغيير لغة السيرفر بنجاح إلى: **{lang}**"
     },
     "fr": {
         "staff_only": "❌ Erreur : Commande réservée au staff !",
-        "owner_only": "❌ Erreur : Commande réservée au propriétaire !",
-        "admin_channel_err": "❌ Erreur : Veuillez utiliser un salon staff !",
+        "owner_only": "❌ Erreur : Réservé AU PROPRIÉTAIRE UNIQUEMENT !",
+        "admin_channel_err": "❌ ALERTE SÉCURITÉ : Interdit dans les salons publics !",
         "log_title": "🚨 [Sanction - {type}]",
         "target": "👤 Cible",
         "executor": "🛡️ Exécuteur",
@@ -111,8 +112,8 @@ TRANSLATIONS = {
     },
     "es": {
         "staff_only": "❌ ¡Error: Comando solo para el staff!",
-        "owner_only": "❌ ¡Error: Comando solo para el dueño!",
-        "admin_channel_err": "❌ ¡Error: Usa un canal de administración!",
+        "owner_only": "❌ ¡Error: Reservado SOLO para el Dueño!",
+        "admin_channel_err": "❌ ALERTA DE SEGURIDAD: ¡Prohibido en canales públicos!",
         "log_title": "🚨 [Castigo - {type}]",
         "target": "👤 Usuario",
         "executor": "🛡️ Ejecutor",
@@ -128,8 +129,8 @@ TRANSLATIONS = {
     },
     "de": {
         "staff_only": "❌ Fehler: Nur für Teammitglieder!",
-        "owner_only": "❌ Fehler: Nur für den Besitzer!",
-        "admin_channel_err": "❌ Fehler: Bitte Admin-Kanal nutzen!",
+        "owner_only": "❌ Fehler: NUR für den Besitzer!",
+        "admin_channel_err": "❌ SICHERHEITSWARNUNG: Nicht in öffentlichen Kanälen erlaubt!",
         "log_title": "🚨 [Strafe - {type}]",
         "target": "👤 Mitglied",
         "executor": "🛡️ Ausführender",
@@ -145,8 +146,8 @@ TRANSLATIONS = {
     },
     "tr": {
         "staff_only": "❌ Hata: Bu komut sadece yetkililer içindir!",
-        "owner_only": "❌ Hata: Bu komut sadece sunucu sahibi içindir!",
-        "admin_channel_err": "❌ Hata: Lütfen yetkili kanalını kullanın!",
+        "owner_only": "❌ Hata: SADECE Kurucu yetkisi içindir!",
+        "admin_channel_err": "❌ GÜVENLİK UYARISI: Genel kanallarda kullanılamaz!",
         "log_title": "🚨 [Ceza Kaydı - {type}]",
         "target": "👤 Kullanıcı",
         "executor": "🛡️ Uygulayan",
@@ -162,8 +163,8 @@ TRANSLATIONS = {
     },
     "ru": {
         "staff_only": "❌ Ошибка: Только для администрации!",
-        "owner_only": "❌ Ошибка: Только для владельца!",
-        "admin_channel_err": "❌ Ошибка: Используйте админ-канал!",
+        "owner_only": "❌ Ошибка: ТОЛЬКО для Владельца!",
+        "admin_channel_err": "❌ ОШИБКА БЕЗОПАСНОСТИ: Запрещено в публичных каналах!",
         "log_title": "🚨 [Лог наказания - {type}]",
         "target": "👤 Нарушитель",
         "executor": "🛡️ Модератор",
@@ -260,20 +261,26 @@ async def on_message_edit(before, after):
         embed.add_field(name="After", value=after.content or "None", inline=False)
         await logs_channel.send(embed=embed)
 
-# ==================== التحقق من قنوات الإدارة ====================
+# ==================== التحقق من قنوات الإدارة والـ Protection ====================
 
 def is_staff_channel(channel):
     name = channel.name.lower()
-    return any(keyword in name for keyword in ["admin", "staff", "console", "owner", "ادارة", "الإدارة"])
+    return any(keyword in name for keyword in ["admin", "staff", "console", "owner", "ادارة", "الإدارة", "cmd"])
 
 async def check_admin_channel(interaction: discord.Interaction):
     if interaction.user.id in OWNER_IDS: return True
+    
     if not is_staff_channel(interaction.channel):
         logs_channel = (discord.utils.get(interaction.guild.text_channels, name="logs") or 
                         discord.utils.get(interaction.guild.text_channels, name="سجل-المراقبة"))
         if logs_channel:
-            embed = discord.Embed(title="🚨 [Admin Command Used in Public Channel]", color=discord.Color.orange(), timestamp=discord.utils.utcnow())
-            embed.add_field(name="Staff", value=interaction.user.mention, inline=True)
+            embed = discord.Embed(
+                title="🚨 [SECURITY VIOLATION - Public Channel Command Usage]", 
+                description=f"⚠️ **Staff member attempted to run an admin command in a public channel!**\n\n**Action required:** Strip staff roles if unauthorized.",
+                color=discord.Color.dark_red(), 
+                timestamp=discord.utils.utcnow()
+            )
+            embed.add_field(name="Violator", value=f"{interaction.user.mention} (`{interaction.user.id}`)", inline=True)
             embed.add_field(name="Channel", value=interaction.channel.mention, inline=True)
             embed.add_field(name="Command", value=f"`/{interaction.command.name}`", inline=False)
             await logs_channel.send(embed=embed)
@@ -282,9 +289,9 @@ async def check_admin_channel(interaction: discord.Interaction):
         return False
     return True
 
-# ==================== أمر إعداد اللغة القائم على الخيارات ====================
+# ==================== أمر إعداد اللغة ====================
 
-@bot.tree.command(name="setlanguage", description="Change bot language for this server")
+@bot.tree.command(name="setlanguage", description="Change bot language for this server (Owner Only)")
 @app_commands.choices(language_code=[
     app_commands.Choice(name="🇺🇸 English", value="en"),
     app_commands.Choice(name="🇸🇦 العربية", value="ar"),
@@ -317,10 +324,10 @@ async def help_command(interaction: discord.Interaction):
     embed.set_footer(text="VoidCraft Ecosystem - Global Edition")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-@bot.tree.command(name="adminhelp", description="Complete staff & admin command list (Staff Channels Only)")
+@bot.tree.command(name="adminhelp", description="Complete Owner & Staff command list (Owner & Staff Channels Only)")
 async def adminhelp(interaction: discord.Interaction):
-    if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
         return
     if not await check_admin_channel(interaction): return
 
@@ -341,10 +348,11 @@ async def adminhelp(interaction: discord.Interaction):
 
     # 🛡️ 2. Security & Auto-Protection
     sec_text = (
-        "⚡ **Anti-Exe / Anti-Malware:** Auto-mutes and kicks suspicious file uploads\n"
+        "⚡ **Anti-Exe / Anti-Malware:** Auto-mutes & kicks suspicious file uploads\n"
         "⚡ **Anti-Discord Invite:** Auto-mutes external Discord server invite spam\n"
         "⚡ **Anti-Spam:** Auto-mutes repeated fast messaging\n"
-        "⚡ **24-Hour Reset:** Automated violation resets after 24 hours"
+        "⚡ **24-Hour Reset:** Automated violation resets after 24 hours\n"
+        "⚡ **Public Channel Shield:** Auto-logs any staff attempting commands in public channels"
     )
     embed.add_field(name=get_text(interaction.guild.id, "sec_title"), value=sec_text, inline=False)
 
@@ -359,15 +367,15 @@ async def adminhelp(interaction: discord.Interaction):
     # 🎫 4. Setup & Giveaways
     setup_text = (
         "🎫 `/setup_tickets` - Deploy interactive support ticket panel (Owner)\n"
-        "🎁 `/giveaway [prize] [duration_minutes]` - Start an automated giveaway\n"
+        "🎁 `/giveaway [prize] [duration_minutes]` - Start an automated giveaway (Owner)\n"
         "🌐 `/setlanguage` - Select server language from dropdown list (Owner)"
     )
     embed.add_field(name=get_text(interaction.guild.id, "setup_title"), value=setup_text, inline=False)
 
-    embed.set_footer(text="VoidCraft Ecosystem - Advanced Admin Protection")
+    embed.set_footer(text="VoidCraft Ecosystem - Owner Edition")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# ==================== نظام المسابقات والسحوبات التفاعلي (Giveaway System) ====================
+# ==================== نظام المسابقات والسحوبات التفاعلي ====================
 
 class GiveawayView(discord.ui.View):
     def __init__(self, prize):
@@ -383,11 +391,11 @@ class GiveawayView(discord.ui.View):
             self.participants.add(interaction.user.id)
             await interaction.response.send_message(f"🎉 You successfully entered the giveaway for **{self.prize}**!", ephemeral=True)
 
-@bot.tree.command(name="giveaway", description="Start an automated giveaway (Staff only)")
+@bot.tree.command(name="giveaway", description="Start an automated giveaway (Owner Only)")
 @app_commands.describe(prize="Prize name", duration_minutes="Duration in minutes")
 async def giveaway(interaction: discord.Interaction, prize: str, duration_minutes: int):
-    if not interaction.user.guild_permissions.manage_events and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
         return
 
     embed = discord.Embed(
@@ -444,7 +452,7 @@ async def userinfo(interaction: discord.Interaction, member: discord.Member = No
 async def avatar(interaction: discord.Interaction, member: discord.Member = None):
     target = member or interaction.user
     embed = discord.Embed(title=f"🖼️ {target.name}'s Avatar", color=discord.Color.blue())
-    embed.set_image(url=target.avatar.url if target.avatar else target.default_avatar.url)
+    embed.set_image(url=target.avatar.url if target.avatar else target.defaultavatar.url)
     await interaction.response.send_message(embed=embed)
 
 # ==================== أوامر الإدارة والعقوبات ====================
@@ -556,7 +564,7 @@ async def infractions(interaction: discord.Interaction, member: discord.Member):
     embed.add_field(name="External Links", value=f"**{data['link_count']}**", inline=True)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-@bot.tree.command(name="lock", description="Lock channel")
+@bot.tree.command(name="lock", description="Lock channel (Owner Only)")
 async def lock(interaction: discord.Interaction):
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
         await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
@@ -565,7 +573,7 @@ async def lock(interaction: discord.Interaction):
     await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=False)
     await interaction.response.send_message("🔒 Channel locked.")
 
-@bot.tree.command(name="unlock", description="Unlock channel")
+@bot.tree.command(name="unlock", description="Unlock channel (Owner Only)")
 async def unlock(interaction: discord.Interaction):
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
         await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
@@ -574,7 +582,7 @@ async def unlock(interaction: discord.Interaction):
     await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=True)
     await interaction.response.send_message("🔓 Channel unlocked.")
 
-@bot.tree.command(name="slowmode", description="Slowmode")
+@bot.tree.command(name="slowmode", description="Slowmode (Owner Only)")
 @app_commands.describe(seconds="Seconds")
 async def slowmode(interaction: discord.Interaction, seconds: int):
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
@@ -648,7 +656,7 @@ class TicketButtonView(discord.ui.View):
     async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(TicketModal())
 
-@bot.tree.command(name="setup_tickets", description="Setup tickets panel")
+@bot.tree.command(name="setup_tickets", description="Setup tickets panel (Owner Only)")
 async def setup_tickets(interaction: discord.Interaction):
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
         await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
@@ -742,7 +750,6 @@ async def on_message(message):
     current_xp = user_xp[author_id]
     level = current_xp // 100
 
-    # 🎖️ مكافآت الرتب التلقائية مع المستويات
     if current_xp > 0 and current_xp % 100 == 0:
         levels_channel = (discord.utils.get(message.guild.text_channels, name="levels") or 
                           discord.utils.get(message.guild.text_channels, name="المستويات") or 
@@ -751,7 +758,6 @@ async def on_message(message):
             try: await levels_channel.send(f"🎉 Congrats {message.author.mention}! Level **{level}**! 🚀")
             except: pass
 
-        # إضافة رتبة تلقائية عند الوصول لمستوى 5
         if level == 5:
             active_role = discord.utils.get(message.guild.roles, name="Active Player")
             if active_role:
