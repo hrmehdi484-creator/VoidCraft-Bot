@@ -9,9 +9,74 @@ import threading
 import os
 import random
 import asyncio
-from flask import Flask
+import sqlite3
+from flask import Flask, jsonify, request
 
-# ==================== الإعدادات الأساسية ====================
+# ==================== إعداد قاعدة البيانات الدائمة (SQLite) ====================
+
+DB_FILE = "bot_data.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS users (
+                    user_id INTEGER PRIMARY KEY,
+                    xp INTEGER DEFAULT 0,
+                    balance INTEGER DEFAULT 100
+                )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS guild_settings (
+                    guild_id INTEGER PRIMARY KEY,
+                    language TEXT DEFAULT 'en',
+                    is_premium INTEGER DEFAULT 0,
+                    expiry_date TEXT
+                )''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def get_user_data(user_id):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT xp, balance FROM users WHERE user_id = ?", (user_id,))
+    row = c.fetchone()
+    if not row:
+        c.execute("INSERT INTO users (user_id, xp, balance) VALUES (?, 0, 100)", (user_id,))
+        conn.commit()
+        conn.close()
+        return 0, 100
+    conn.close()
+    return row[0], row[1]
+
+def update_user_data(user_id, xp=None, balance=None):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    current_xp, current_balance = get_user_data(user_id)
+    new_xp = xp if xp is not None else current_xp
+    new_balance = balance if balance is not None else current_balance
+    c.execute("UPDATE users SET xp = ?, balance = ? WHERE user_id = ?", (new_xp, new_balance, user_id))
+    conn.commit()
+    conn.close()
+
+def get_server_lang(guild_id):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT language FROM guild_settings WHERE guild_id = ?", (guild_id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return "en"
+    conn.close()
+    return row[0]
+
+def set_server_lang(guild_id, lang):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("INSERT OR REPLACE INTO guild_settings (guild_id, language) VALUES (?, ?)", (guild_id, lang))
+    conn.commit()
+    conn.close()
+
+# ==================== الإعدادات الأساسية للبوت ====================
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -20,19 +85,12 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 bot.remove_command('help')
 
-user_xp = defaultdict(int)
-user_balance = defaultdict(lambda: 100) # رصيد مجاني عند البداية 100
 last_daily = defaultdict(float)
 last_message_time = defaultdict(float)
 last_message_content = defaultdict(str)
 user_spam_count = defaultdict(int)
 user_warnings = defaultdict(list)
-
-# 🕒 تخزين سجل المخالفات والعقوبات المتصاعدة
 user_violations = defaultdict(lambda: {'suspicious_count': 0, 'link_count': 0, 'last_time': 0.0})
-
-# 🌐 تخزين لغة كل سيرفر (الافتراضي: الإنجليزية en)
-server_languages = defaultdict(lambda: "en")
 
 # 🛡️ آيدي حساب الأونر الخاص بك (جون)
 OWNER_IDS = [1335193543660273716]
@@ -40,7 +98,6 @@ OWNER_IDS = [1335193543660273716]
 # 🔗 رابط سيرفر ديسكورد المستثنى من الحذف
 MY_SERVER_INVITE = "discord.gg/voidcraft"
 
-# 🎥 المنصات المسموح بنشر روابطها
 ALLOWED_PLATFORMS = [
     "youtube.com", "youtu.be", 
     "tiktok.com", 
@@ -51,7 +108,6 @@ ALLOWED_PLATFORMS = [
     "twitter.com", "x.com"
 ]
 
-# ⚠️ الامتدادات الممنوعة لحماية أجهزة الأعضاء
 DANGEROUS_EXTENSIONS = [
     '.exe', '.scr', '.bat', '.cmd', '.vbs', '.js', '.jse', '.wsf', '.wsh',
     '.ps1', '.msi', '.com', '.pif', '.reg', '.dll', '.iso', '.dmg',
@@ -77,7 +133,9 @@ TRANSLATIONS = {
         "mod_title": "🔨 Moderation & Punishments System",
         "ctrl_title": "⚙️ Channel & Server Control",
         "setup_title": "🎫 Setup, Tickets & Giveaways",
-        "lang_changed": "🌐 Server language successfully set to: **{lang}**"
+        "lang_changed": "🌐 Server language successfully set to: **{lang}**",
+        "warn_removed": "✅ Removed warning index **{index}** from {member}.",
+        "warn_cleared": "🧹 Cleared all warnings for {member}."
     },
     "ar": {
         "staff_only": "❌ عذراً، هذا الأمر مخصص للإدارة فقط!",
@@ -95,14 +153,15 @@ TRANSLATIONS = {
         "mod_title": "🔨 نظام العقوبات وإدارة الأعضاء",
         "ctrl_title": "⚙️ التحكم بالقنوات والسيرفر",
         "setup_title": "🎫 الإعدادات والمسابقات والتكتات",
-        "lang_changed": "🌐 تم تغيير لغة السيرفر بنجاح إلى: **{lang}**"
+        "lang_changed": "🌐 تم تغيير لغة السيرفر بنجاح إلى: **{lang}**",
+        "warn_removed": "✅ تم حذف التحذير رقم **{index}** من العضو {member}.",
+        "warn_cleared": "🧹 تم مسح جميع التحذيرات المسجلة بحق العضو {member}."
     }
 }
 
 def get_text(guild_id, key, **kwargs):
-    lang = server_languages[guild_id]
-    if lang not in TRANSLATIONS:
-        lang = "en"
+    lang = get_server_lang(guild_id) if guild_id else "en"
+    if lang not in TRANSLATIONS: lang = "en"
     text = TRANSLATIONS[lang].get(key, TRANSLATIONS["en"].get(key, key))
     return text.format(**kwargs)
 
@@ -123,6 +182,7 @@ async def send_punishment_log(guild, member, executor, punishment_type, reason, 
         "WARN ⚠️": discord.Color.yellow(),
         "UNMUTE 🔊": discord.Color.green(),
         "UNBAN 🔓": discord.Color.blue(),
+        "REMOVE_WARN 🧹": discord.Color.teal(),
         "SECURITY 🚨": discord.Color.dark_red()
     }
 
@@ -146,7 +206,7 @@ async def send_punishment_log(guild, member, executor, punishment_type, reason, 
         try: await logs_channel.send(embed=embed)
         except Exception as e: print(f"Error audit log: {e}")
 
-# ==================== أحداث البوت ====================
+# ==================== أحداث البوت المباشرة ====================
 
 @bot.event
 async def on_ready():
@@ -156,6 +216,29 @@ async def on_ready():
         print(f"🚀 Synced {len(synced)} slash commands globally.")
     except Exception as e:
         print(f"❌ Sync failed: {e}")
+
+@bot.event
+async def on_message_delete(message):
+    if message.author.bot or message.guild is None: return
+    logs_channel = discord.utils.get(message.guild.text_channels, name="logs")
+    if logs_channel:
+        embed = discord.Embed(title="🗑️ Message Deleted", color=discord.Color.red(), timestamp=discord.utils.utcnow())
+        embed.add_field(name="Author", value=message.author.mention, inline=True)
+        embed.add_field(name="Channel", value=message.channel.mention, inline=True)
+        embed.add_field(name="Content", value=message.content or "[Attachment]", inline=False)
+        await logs_channel.send(embed=embed)
+
+@bot.event
+async def on_message_edit(before, after):
+    if before.author.bot or before.guild is None or before.content == after.content: return
+    logs_channel = discord.utils.get(before.guild.text_channels, name="logs")
+    if logs_channel:
+        embed = discord.Embed(title="✏️ Message Edited", color=discord.Color.blue(), timestamp=discord.utils.utcnow())
+        embed.add_field(name="Author", value=before.author.mention, inline=True)
+        embed.add_field(name="Channel", value=before.channel.mention, inline=True)
+        embed.add_field(name="Before", value=before.content or "None", inline=False)
+        embed.add_field(name="After", value=after.content or "None", inline=False)
+        await logs_channel.send(embed=embed)
 
 # ==================== التحقق من قنوات الإدارة والتحصين ====================
 
@@ -185,9 +268,9 @@ async def check_admin_channel(interaction: discord.Interaction):
         return False
     return True
 
-# ==================== 🏦 نظام الاقتصاد والألعاب (Economy & Fun) ====================
+# ==================== 🪙 نظام الاقتصاد والمالية الحلال ====================
 
-@bot.tree.command(name="daily", description="Claim your daily coins reward")
+@bot.tree.command(name="daily", description="Claim your daily interactive coins reward")
 async def daily(interaction: discord.Interaction):
     user_id = interaction.user.id
     current_time = time.time()
@@ -195,51 +278,65 @@ async def daily(interaction: discord.Interaction):
     if current_time - last_daily[user_id] < 86400:
         remaining = int(86400 - (current_time - last_daily[user_id]))
         hours, mins = remaining // 3600, (remaining % 3600) // 60
-        return await interaction.response.send_message(f"⌛ You already claimed your daily coins! Wait **{hours}h {mins}m**.", ephemeral=True)
+        return await interaction.response.send_message(f"⌛ You already claimed your daily reward! Wait **{hours}h {mins}m**.", ephemeral=True)
     
     reward = random.randint(200, 500)
-    user_balance[user_id] += reward
+    xp, bal = get_user_data(user_id)
+    update_user_data(user_id, balance=bal + reward)
     last_daily[user_id] = current_time
-    await interaction.response.send_message(f"💰 You claimed your daily reward of **{reward} coins**! Total: **{user_balance[user_id]}**.")
+    await interaction.response.send_message(f"🎁 You claimed your daily interaction reward of **{reward} coins**! Balance: **{bal + reward}**.")
 
-@bot.tree.command(name="balance", description="Check your or another member's coin balance")
+@bot.tree.command(name="balance", description="Check your or another member's balance")
 @app_commands.describe(member="Target member")
 async def balance(interaction: discord.Interaction, member: discord.Member = None):
     target = member or interaction.user
-    coins = user_balance[target.id]
+    _, coins = get_user_data(target.id)
     await interaction.response.send_message(f"🪙 **{target.name}** has **{coins} coins**.", ephemeral=True)
 
-@bot.tree.command(name="pay", description="Transfer coins to another member")
+@bot.tree.command(name="pay", description="Gift coins to another member")
 @app_commands.describe(member="Target member", amount="Amount to send")
 async def pay(interaction: discord.Interaction, member: discord.Member, amount: int):
     if amount <= 0:
         return await interaction.response.send_message("❌ Amount must be greater than 0!", ephemeral=True)
-    if user_balance[interaction.user.id] < amount:
+    _, sender_bal = get_user_data(interaction.user.id)
+    if sender_bal < amount:
         return await interaction.response.send_message("❌ You don't have enough coins!", ephemeral=True)
     
-    user_balance[interaction.user.id] -= amount
-    user_balance[member.id] += amount
-    await interaction.response.send_message(f"💸 Successfully transferred **{amount} coins** to {member.mention}!")
+    update_user_data(interaction.user.id, balance=sender_bal - amount)
+    _, target_bal = get_user_data(member.id)
+    update_user_data(member.id, balance=target_bal + amount)
+    await interaction.response.send_message(f"💸 Successfully gifted **{amount} coins** to {member.mention}!")
 
-@bot.tree.command(name="coinflip", description="Flip a coin (Heads or Tails)")
-@app_commands.describe(choice="Heads or Tails")
-@app_commands.choices(choice=[
-    app_commands.Choice(name="🪙 Heads", value="heads"),
-    app_commands.Choice(name="🪙 Tails", value="tails")
-])
-async def coinflip(interaction: discord.Interaction, choice: app_commands.Choice[str]):
-    result = random.choice(["heads", "tails"])
-    if choice.value == result:
-        await interaction.response.send_message(f"🎉 Result: **{result.upper()}**! You won!")
-    else:
-        await interaction.response.send_message(f"❌ Result: **{result.upper()}**! Better luck next time!")
+# ==================== 🎲 نظام ألعاب التحدي الثقافية الحلال ====================
 
-@bot.tree.command(name="roll", description="Roll a dice (1-6)")
+QUIZ_QUESTIONS = [
+    {"q": "What is the capital of Saudi Arabia?", "a": "Riyadh"},
+    {"q": "Which planet is known as the Red Planet?", "a": "Mars"},
+    {"q": "What is the hardest natural substance on Earth?", "a": "Diamond"},
+    {"q": "Which gas do plants absorb from the atmosphere?", "a": "Carbon Dioxide"}
+]
+
+@bot.tree.command(name="quiz", description="Play a quick trivia question game for fun")
+async def quiz(interaction: discord.Interaction):
+    item = random.choice(QUIZ_QUESTIONS)
+    embed = discord.Embed(title="🧠 Trivia Quiz Game", description=f"**Question:** {item['q']}\n\n*Type your answer in the chat within 15 seconds!*", color=discord.Color.teal())
+    await interaction.response.send_message(embed=embed)
+
+    def check(m):
+        return m.channel == interaction.channel and m.content.lower() == item['a'].lower()
+
+    try:
+        msg = await bot.wait_for('message', timeout=15.0, check=check)
+        await interaction.channel.send(f"🎉 Correct answer {msg.author.mention}! The answer was **{item['a']}**.")
+    except asyncio.TimeoutError:
+        await interaction.channel.send(f"⏱️ Time's up! The correct answer was **{item['a']}**.")
+
+@bot.tree.command(name="roll", description="Roll a dice for fun (1-6)")
 async def roll(interaction: discord.Interaction):
     dice_result = random.randint(1, 6)
     await interaction.response.send_message(f"🎲 You rolled a **{dice_result}**!")
 
-# ==================== 🧹 أوامر التنظيف المتقدمة (Advanced Purge) ====================
+# ==================== 🧹 أوامر التنظيف المتقدمة ====================
 
 @bot.tree.command(name="clear_bots", description="Purge messages sent by bots only")
 @app_commands.describe(amount="Number of messages to scan (1-100)")
@@ -263,7 +360,7 @@ async def clear_user(interaction: discord.Interaction, member: discord.Member, a
     deleted = await interaction.channel.purge(limit=min(amount, 100), check=lambda m: m.author == member)
     await interaction.followup.send(f"🧹 Cleared **{len(deleted)}** messages from {member.mention}.", ephemeral=True)
 
-# ==================== لوحة أوامر الأونر الـ VIP الفاخرة ====================
+# ==================== 👑 لوحة أوامر الأونر الحصرية الحقيقية ====================
 
 @bot.tree.command(name="ownerhelp", description="Ultimate VIP Command Panel (Bot Owner Only)")
 async def ownerhelp(interaction: discord.Interaction):
@@ -281,7 +378,7 @@ async def ownerhelp(interaction: discord.Interaction):
 
     channels_cmd = (
         "⚡ `/nuke` - Clone & purge channel history completely\n"
-        "⚡ `/createchannel [name] [type]` - Create text/voice channel\n"
+        "⚡ `/createchannel [name] [is_voice]` - Create text/voice channel\n"
         "⚡ `/deletechannel [channel]` - Delete a channel instantly\n"
         "⚡ `/lock` / `/unlock` - Instantly lock/unlock channel\n"
         "⚡ `/slowmode [seconds]` - Control channel slowmode"
@@ -312,7 +409,7 @@ async def ownerhelp(interaction: discord.Interaction):
     embed.set_footer(text="VoidCraft VIP Suite - Premium Edition")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# ==================== أوامر الأونر الـ VIP ====================
+# ==================== أوامر الأونر الـ VIP الفردية ====================
 
 @bot.tree.command(name="giverole", description="Give role to member (Owner Only)")
 @app_commands.describe(member="Member", role="Role")
@@ -424,17 +521,12 @@ async def nick(interaction: discord.Interaction, member: discord.Member, nicknam
     await member.edit(nick=nickname)
     await interaction.response.send_message(f"✅ Changed nickname for {member.mention} to `{nickname}`.")
 
-# ==================== أمر إعداد اللغة الخيالي ====================
+# ==================== أمر إعداد اللغة ====================
 
 @bot.tree.command(name="setlanguage", description="Change bot language for this server (Owner Only)")
 @app_commands.choices(language_code=[
     app_commands.Choice(name="🇺🇸 English", value="en"),
-    app_commands.Choice(name="🇸🇦 العربية", value="ar"),
-    app_commands.Choice(name="🇫🇷 Français", value="fr"),
-    app_commands.Choice(name="🇪🇸 Español", value="es"),
-    app_commands.Choice(name="🇩🇪 Deutsch", value="de"),
-    app_commands.Choice(name="🇹🇷 Türkçe", value="tr"),
-    app_commands.Choice(name="🇷🇺 Русский", value="ru")
+    app_commands.Choice(name="🇸🇦 العربية", value="ar")
 ])
 async def setlanguage(interaction: discord.Interaction, language_code: app_commands.Choice[str]):
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
@@ -442,7 +534,7 @@ async def setlanguage(interaction: discord.Interaction, language_code: app_comma
         return
     
     code = language_code.value
-    server_languages[interaction.guild.id] = code
+    set_server_lang(interaction.guild.id, code)
     await interaction.response.send_message(get_text(interaction.guild.id, "lang_changed", lang=language_code.name))
 
 # ==================== أوامر المساعدة العامة والأدمن ====================
@@ -451,8 +543,8 @@ async def setlanguage(interaction: discord.Interaction, language_code: app_comma
 async def help_command(interaction: discord.Interaction):
     embed = discord.Embed(title=get_text(interaction.guild.id, "help_title"), color=discord.Color.blurple())
     embed.add_field(name="📊 `/level`", value="Check level & XP stats.", inline=False)
-    embed.add_field(name="💰 `/daily` / `/balance` / `/pay`", value="Economy & Coin banking tools.", inline=False)
-    embed.add_field(name="🎲 `/coinflip` / `/roll`", value="Fun games.", inline=False)
+    embed.add_field(name="💰 `/daily` / `/balance` / `/pay`", value="Interactive reward & gifting tools.", inline=False)
+    embed.add_field(name="🧠 `/quiz` / `/roll`", value="Fun & trivia quiz games.", inline=False)
     embed.add_field(name="👤 `/userinfo` / `/avatar`", value="Account info & profile photo.", inline=False)
     embed.add_field(name="🏰 `/serverinfo` / `/botinfo` / `/ping`", value="Ecosystem stats.", inline=False)
     embed.set_footer(text="VoidCraft Ecosystem - Global Edition")
@@ -487,87 +579,7 @@ async def adminhelp(interaction: discord.Interaction):
     embed.set_footer(text="VoidCraft Ecosystem - Staff Edition")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# ==================== نظام المسابقات والسحوبات ====================
-
-class GiveawayView(discord.ui.View):
-    def __init__(self, prize):
-        super().__init__(timeout=None)
-        self.prize = prize
-        self.participants = set()
-
-    @discord.ui.button(label="🎉 Enter Giveaway", style=discord.ButtonStyle.success, custom_id="enter_giveaway_btn")
-    async def enter_giveaway(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user.id in self.participants:
-            await interaction.response.send_message("❌ You have already entered this giveaway!", ephemeral=True)
-        else:
-            self.participants.add(interaction.user.id)
-            await interaction.response.send_message(f"🎉 You successfully entered the giveaway for **{self.prize}**!", ephemeral=True)
-
-@bot.tree.command(name="giveaway", description="Start an automated giveaway (Owner Only)")
-@app_commands.describe(prize="Prize name", duration_minutes="Duration in minutes")
-async def giveaway(interaction: discord.Interaction, prize: str, duration_minutes: int):
-    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
-        await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
-        return
-
-    embed = discord.Embed(
-        title="🎁 GIVEAWAY STARTED!",
-        description=f"Prize: **{prize}**\nDuration: **{duration_minutes}** minutes\nHosted by: {interaction.user.mention}\n\nClick the button below to join!",
-        color=discord.Color.gold()
-    )
-    view = GiveawayView(prize)
-    await interaction.response.send_message(embed=embed, view=view)
-    
-    await asyncio.sleep(duration_minutes * 60)
-    
-    if view.participants:
-        winner_id = random.choice(list(view.participants))
-        winner = interaction.guild.get_member(winner_id)
-        await interaction.channel.send(f"🎉 Congratulations {winner.mention}! You won **{prize}**!")
-    else:
-        await interaction.channel.send(f"🎁 Giveaway for **{prize}** ended. No participants joined.")
-
-# ==================== الأوامر العامة الإضافية ====================
-
-@bot.tree.command(name="ping", description="Check latency")
-async def ping(interaction: discord.Interaction):
-    latency = round(bot.latency * 1000)
-    await interaction.response.send_message(f"🏓 Pong! Latency: **{latency}ms**", ephemeral=True)
-
-@bot.tree.command(name="botinfo", description="Bot statistics")
-async def botinfo(interaction: discord.Interaction):
-    embed = discord.Embed(title="🤖 VoidCraft Bot Statistics", color=discord.Color.purple())
-    embed.add_field(name="Servers", value=f"**{len(bot.guilds)}**", inline=True)
-    embed.add_field(name="Users", value=f"**{sum(g.member_count for g in bot.guilds)}**", inline=True)
-    await interaction.response.send_message(embed=embed)
-
-@bot.tree.command(name="serverinfo", description="Server statistics")
-async def serverinfo(interaction: discord.Interaction):
-    guild = interaction.guild
-    embed = discord.Embed(title=f"🏰 {guild.name}", color=discord.Color.gold())
-    if guild.icon: embed.set_thumbnail(url=guild.icon.url)
-    embed.add_field(name="Owner", value=f"{guild.owner.mention}", inline=True)
-    embed.add_field(name="Members", value=f"**{guild.member_count}**", inline=True)
-    await interaction.response.send_message(embed=embed)
-
-@bot.tree.command(name="userinfo", description="User info")
-@app_commands.describe(member="Target member")
-async def userinfo(interaction: discord.Interaction, member: discord.Member = None):
-    target = member or interaction.user
-    embed = discord.Embed(title=f"👤 {target.name}", color=target.color)
-    embed.set_thumbnail(url=target.avatar.url if target.avatar else target.default_avatar.url)
-    embed.add_field(name="ID", value=f"`{target.id}`", inline=True)
-    await interaction.response.send_message(embed=embed)
-
-@bot.tree.command(name="avatar", description="User avatar")
-@app_commands.describe(member="Target member")
-async def avatar(interaction: discord.Interaction, member: discord.Member = None):
-    target = member or interaction.user
-    embed = discord.Embed(title=f"🖼️ {target.name}'s Avatar", color=discord.Color.blue())
-    embed.set_image(url=target.avatar.url if target.avatar else target.default_avatar.url)
-    await interaction.response.send_message(embed=embed)
-
-# ==================== أوامر الإدارة والعقوبات ====================
+# ==================== أوامر الإدارة والعقوبات بالتفصيل ====================
 
 @bot.tree.command(name="mute", description="Timeout member")
 @app_commands.describe(member="Target", minutes="Minutes", reason="Reason (Required)")
@@ -706,7 +718,7 @@ async def slowmode(interaction: discord.Interaction, seconds: int):
     await interaction.channel.edit(slowmode_delay=seconds)
     await interaction.response.send_message(f"⏱️ Slowmode set to {seconds}s.")
 
-# ==================== نظام التكتات والترحيب ====================
+# ==================== نظام التكتات والترحيب المتكامل ====================
 
 class ConfirmCloseView(discord.ui.View):
     def __init__(self): super().__init__(timeout=None)
@@ -779,17 +791,85 @@ async def setup_tickets(interaction: discord.Interaction):
     await interaction.channel.send(embed=embed, view=TicketButtonView())
     await interaction.response.send_message("✅ Panel sent.", ephemeral=True)
 
-@bot.event
-async def on_member_join(member):
-    channel = discord.utils.get(member.guild.text_channels, name="welcome") or discord.utils.get(member.guild.text_channels, name="👋-welcome-👋")
-    if channel:
-        embed = discord.Embed(title="✨ Welcome to VoidCraft!", description=f"Welcome {member.mention}! 🎮", color=discord.Color.blurple())
-        embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
-        await channel.send(embed=embed)
-    role = discord.utils.get(member.guild.roles, name="Player")
-    if role:
-        try: await member.add_roles(role)
-        except: pass
+# ==================== نظام المسابقات والسحوبات (Giveaways) ====================
+
+class GiveawayView(discord.ui.View):
+    def __init__(self, prize):
+        super().__init__(timeout=None)
+        self.prize = prize
+        self.participants = set()
+
+    @discord.ui.button(label="🎉 Enter Giveaway", style=discord.ButtonStyle.success, custom_id="enter_giveaway_btn")
+    async def enter_giveaway(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id in self.participants:
+            await interaction.response.send_message("❌ You have already entered this giveaway!", ephemeral=True)
+        else:
+            self.participants.add(interaction.user.id)
+            await interaction.response.send_message(f"🎉 You successfully entered the giveaway for **{self.prize}**!", ephemeral=True)
+
+@bot.tree.command(name="giveaway", description="Start an automated giveaway (Owner Only)")
+@app_commands.describe(prize="Prize name", duration_minutes="Duration in minutes")
+async def giveaway(interaction: discord.Interaction, prize: str, duration_minutes: int):
+    if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
+        await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="🎁 GIVEAWAY STARTED!",
+        description=f"Prize: **{prize}**\nDuration: **{duration_minutes}** minutes\nHosted by: {interaction.user.mention}\n\nClick the button below to join!",
+        color=discord.Color.gold()
+    )
+    view = GiveawayView(prize)
+    await interaction.response.send_message(embed=embed, view=view)
+    
+    await asyncio.sleep(duration_minutes * 60)
+    
+    if view.participants:
+        winner_id = random.choice(list(view.participants))
+        winner = interaction.guild.get_member(winner_id)
+        await interaction.channel.send(f"🎉 Congratulations {winner.mention}! You won **{prize}**!")
+    else:
+        await interaction.channel.send(f"🎁 Giveaway for **{prize}** ended. No participants joined.")
+
+# ==================== الأوامر العامة الإضافية والمعلومات ====================
+
+@bot.tree.command(name="ping", description="Check latency")
+async def ping(interaction: discord.Interaction):
+    latency = round(bot.latency * 1000)
+    await interaction.response.send_message(f"🏓 Pong! Latency: **{latency}ms**", ephemeral=True)
+
+@bot.tree.command(name="botinfo", description="Bot statistics")
+async def botinfo(interaction: discord.Interaction):
+    embed = discord.Embed(title="🤖 VoidCraft Bot Statistics", color=discord.Color.purple())
+    embed.add_field(name="Servers", value=f"**{len(bot.guilds)}**", inline=True)
+    embed.add_field(name="Users", value=f"**{sum(g.member_count for g in bot.guilds)}**", inline=True)
+    await interaction.response.send_message(embed=embed)
+
+@bot.tree.command(name="serverinfo", description="Server statistics")
+async def serverinfo(interaction: discord.Interaction):
+    guild = interaction.guild
+    embed = discord.Embed(title=f"🏰 {guild.name}", color=discord.Color.gold())
+    if guild.icon: embed.set_thumbnail(url=guild.icon.url)
+    embed.add_field(name="Owner", value=f"{guild.owner.mention}", inline=True)
+    embed.add_field(name="Members", value=f"**{guild.member_count}**", inline=True)
+    await interaction.response.send_message(embed=embed)
+
+@bot.tree.command(name="userinfo", description="User info")
+@app_commands.describe(member="Target member")
+async def userinfo(interaction: discord.Interaction, member: discord.Member = None):
+    target = member or interaction.user
+    embed = discord.Embed(title=f"👤 {target.name}", color=target.color)
+    embed.set_thumbnail(url=target.avatar.url if target.avatar else target.default_avatar.url)
+    embed.add_field(name="ID", value=f"`{target.id}`", inline=True)
+    await interaction.response.send_message(embed=embed)
+
+@bot.tree.command(name="avatar", description="User avatar")
+@app_commands.describe(member="Target member")
+async def avatar(interaction: discord.Interaction, member: discord.Member = None):
+    target = member or interaction.user
+    embed = discord.Embed(title=f"🖼️ {target.name}'s Avatar", color=discord.Color.blue())
+    embed.set_image(url=target.avatar.url if target.avatar else target.default_avatar.url)
+    await interaction.response.send_message(embed=embed)
 
 # ==================== نظام الحماية الشامل والأوتوماتيكي ====================
 
@@ -838,75 +918,57 @@ async def on_message(message):
             await send_punishment_log(message.guild, message.author, bot.user, "MUTE 🔇", "External Discord invite", f"{mute_m} mins")
         except: pass
         return
-    elif has_any_link and not is_allowed:
-        try:
-            await message.delete()
-            msg = await message.channel.send(f"⚠️ {message.author.mention} Unauthorized links are not allowed!")
-            await discord.utils.sleep_until(time.time() + 4)
-            await msg.delete()
-        except: pass
-        return
 
-    if current_time - last_message_time[author_id] < 2.5 and content_lower == last_message_content[author_id]:
-        try:
-            await message.delete()
-            user_spam_count[author_id] += 1
-            p_min = user_spam_count[author_id] * 2
-            await message.author.timeout(timedelta(minutes=p_min), reason="Spamming")
-            await send_punishment_log(message.guild, message.author, bot.user, "MUTE 🔇", "Spamming chat", f"{p_min} mins")
-        except: pass
-        return
-
-    last_message_time[author_id] = current_time
-    last_message_content[author_id] = content_lower
-
-    user_xp[author_id] += 10
-    current_xp = user_xp[author_id]
-    level = current_xp // 100
-
-    if current_xp > 0 and current_xp % 100 == 0:
-        levels_channel = (discord.utils.get(message.guild.text_channels, name="levels") or 
-                          discord.utils.get(message.guild.text_channels, name="المستويات") or 
-                          discord.utils.get(message.guild.text_channels, name="level-up"))
-        if levels_channel:
-            try: await levels_channel.send(f"🎉 Congrats {message.author.mention}! Level **{level}**! 🚀")
-            except: pass
-
-        if level == 5:
-            active_role = discord.utils.get(message.guild.roles, name="Active Player")
-            if active_role:
-                try: await message.author.add_roles(active_role)
-                except: pass
+    xp, bal = get_user_data(author_id)
+    update_user_data(author_id, xp=xp + 10)
 
     await bot.process_commands(message)
-
-# ==================== أمر المستوى ====================
 
 @bot.tree.command(name="level", description="Check current level")
 @app_commands.describe(member="Target member")
 async def slash_level(interaction: discord.Interaction, member: discord.Member = None):
     target = member or interaction.user
-    xp = user_xp[target.id]
+    xp, _ = get_user_data(target.id)
     lvl = xp // 100
     embed = discord.Embed(title=f"📊 Stats for {target.name}", color=discord.Color.blue())
     embed.add_field(name="XP", value=f"**{xp}**", inline=True)
     embed.add_field(name="Level", value=f"**{lvl}**", inline=True)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# ==================== خادم الويب وتشغيل البوت 24/7 ====================
+# ==================== خادم الويب (Flask API للتواصل مع الموقع) ====================
 
 app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "Bot is running 24/7!"
+    return "VoidCraft Bot & API are running 24/7!"
+
+@app.route("/api/stats", methods=["GET"])
+def api_stats():
+    return jsonify({
+        "servers": len(bot.guilds),
+        "users": sum(g.member_count for g in bot.guilds)
+    })
+
+@app.route("/api/activate", methods=["POST"])
+def api_activate():
+    data = request.json
+    guild_id = data.get("guild_id")
+    if not guild_id:
+        return jsonify({"error": "Missing guild_id"}), 400
+    
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("UPDATE guild_settings SET is_premium = 1 WHERE guild_id = ?", (guild_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True, "message": f"Guild {guild_id} activated successfully!"})
 
 def run_bot():
     token = os.environ.get("DISCORD_TOKEN")
-    if token:
-        bot.run(token)
-    else:
-        print("❌ Error: DISCORD_TOKEN not found!")
+    if token: bot.run(token)
+    else: print("❌ Error: DISCORD_TOKEN not found!")
 
 bot_thread = threading.Thread(target=run_bot)
 bot_thread.daemon = True
