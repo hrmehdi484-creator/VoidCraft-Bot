@@ -21,12 +21,14 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 bot.remove_command('help')
 
 user_xp = defaultdict(int)
+user_balance = defaultdict(lambda: 100) # رصيد مجاني عند البداية 100
+last_daily = defaultdict(float)
 last_message_time = defaultdict(float)
 last_message_content = defaultdict(str)
 user_spam_count = defaultdict(int)
 user_warnings = defaultdict(list)
 
-# 🕒 تخزين سجل المخالفات والعقوبات المتصاعدة مع التصفير بعد 24 ساعة
+# 🕒 تخزين سجل المخالفات والعقوبات المتصاعدة
 user_violations = defaultdict(lambda: {'suspicious_count': 0, 'link_count': 0, 'last_time': 0.0})
 
 # 🌐 تخزين لغة كل سيرفر (الافتراضي: الإنجليزية en)
@@ -56,7 +58,7 @@ DANGEROUS_EXTENSIONS = [
     '.apk', '.zip', '.rar', '.7z', '.tar', '.gz'
 ]
 
-# ==================== قاموس الترجمة الشامل ====================
+# ==================== قاموس الترجمة العالمي لكافة اللغات ====================
 
 TRANSLATIONS = {
     "en": {
@@ -75,9 +77,7 @@ TRANSLATIONS = {
         "mod_title": "🔨 Moderation & Punishments System",
         "ctrl_title": "⚙️ Channel & Server Control",
         "setup_title": "🎫 Setup, Tickets & Giveaways",
-        "lang_changed": "🌐 Server language successfully set to: **{lang}**",
-        "warn_removed": "✅ Removed warning index **{index}** from {member}.",
-        "warn_cleared": "🧹 Cleared all warnings for {member}."
+        "lang_changed": "🌐 Server language successfully set to: **{lang}**"
     },
     "ar": {
         "staff_only": "❌ عذراً، هذا الأمر مخصص للإدارة فقط!",
@@ -95,9 +95,7 @@ TRANSLATIONS = {
         "mod_title": "🔨 نظام العقوبات وإدارة الأعضاء",
         "ctrl_title": "⚙️ التحكم بالقنوات والسيرفر",
         "setup_title": "🎫 الإعدادات والمسابقات والتكتات",
-        "lang_changed": "🌐 تم تغيير لغة السيرفر بنجاح إلى: **{lang}**",
-        "warn_removed": "✅ تم حذف التحذير رقم **{index}** من العضو {member}.",
-        "warn_cleared": "🧹 تم مسح جميع التحذيرات المسجلة بحق العضو {member}."
+        "lang_changed": "🌐 تم تغيير لغة السيرفر بنجاح إلى: **{lang}**"
     }
 }
 
@@ -125,7 +123,6 @@ async def send_punishment_log(guild, member, executor, punishment_type, reason, 
         "WARN ⚠️": discord.Color.yellow(),
         "UNMUTE 🔊": discord.Color.green(),
         "UNBAN 🔓": discord.Color.blue(),
-        "REMOVE_WARN 🧹": discord.Color.teal(),
         "SECURITY 🚨": discord.Color.dark_red()
     }
 
@@ -149,7 +146,7 @@ async def send_punishment_log(guild, member, executor, punishment_type, reason, 
         try: await logs_channel.send(embed=embed)
         except Exception as e: print(f"Error audit log: {e}")
 
-# ==================== أحداث البوت المباشرة ====================
+# ==================== أحداث البوت ====================
 
 @bot.event
 async def on_ready():
@@ -188,54 +185,131 @@ async def check_admin_channel(interaction: discord.Interaction):
         return False
     return True
 
-# ==================== لوحة أوامر الأونر الـ VIP الفاخرة (Owner Commands) ====================
+# ==================== 🏦 نظام الاقتصاد والألعاب (Economy & Fun) ====================
+
+@bot.tree.command(name="daily", description="Claim your daily coins reward")
+async def daily(interaction: discord.Interaction):
+    user_id = interaction.user.id
+    current_time = time.time()
+    
+    if current_time - last_daily[user_id] < 86400:
+        remaining = int(86400 - (current_time - last_daily[user_id]))
+        hours, mins = remaining // 3600, (remaining % 3600) // 60
+        return await interaction.response.send_message(f"⌛ You already claimed your daily coins! Wait **{hours}h {mins}m**.", ephemeral=True)
+    
+    reward = random.randint(200, 500)
+    user_balance[user_id] += reward
+    last_daily[user_id] = current_time
+    await interaction.response.send_message(f"💰 You claimed your daily reward of **{reward} coins**! Total: **{user_balance[user_id]}**.")
+
+@bot.tree.command(name="balance", description="Check your or another member's coin balance")
+@app_commands.describe(member="Target member")
+async def balance(interaction: discord.Interaction, member: discord.Member = None):
+    target = member or interaction.user
+    coins = user_balance[target.id]
+    await interaction.response.send_message(f"🪙 **{target.name}** has **{coins} coins**.", ephemeral=True)
+
+@bot.tree.command(name="pay", description="Transfer coins to another member")
+@app_commands.describe(member="Target member", amount="Amount to send")
+async def pay(interaction: discord.Interaction, member: discord.Member, amount: int):
+    if amount <= 0:
+        return await interaction.response.send_message("❌ Amount must be greater than 0!", ephemeral=True)
+    if user_balance[interaction.user.id] < amount:
+        return await interaction.response.send_message("❌ You don't have enough coins!", ephemeral=True)
+    
+    user_balance[interaction.user.id] -= amount
+    user_balance[member.id] += amount
+    await interaction.response.send_message(f"💸 Successfully transferred **{amount} coins** to {member.mention}!")
+
+@bot.tree.command(name="coinflip", description="Flip a coin (Heads or Tails)")
+@app_commands.describe(choice="Heads or Tails")
+@app_commands.choices(choice=[
+    app_commands.Choice(name="🪙 Heads", value="heads"),
+    app_commands.Choice(name="🪙 Tails", value="tails")
+])
+async def coinflip(interaction: discord.Interaction, choice: app_commands.Choice[str]):
+    result = random.choice(["heads", "tails"])
+    if choice.value == result:
+        await interaction.response.send_message(f"🎉 Result: **{result.upper()}**! You won!")
+    else:
+        await interaction.response.send_message(f"❌ Result: **{result.upper()}**! Better luck next time!")
+
+@bot.tree.command(name="roll", description="Roll a dice (1-6)")
+async def roll(interaction: discord.Interaction):
+    dice_result = random.randint(1, 6)
+    await interaction.response.send_message(f"🎲 You rolled a **{dice_result}**!")
+
+# ==================== 🧹 أوامر التنظيف المتقدمة (Advanced Purge) ====================
+
+@bot.tree.command(name="clear_bots", description="Purge messages sent by bots only")
+@app_commands.describe(amount="Number of messages to scan (1-100)")
+async def clear_bots(interaction: discord.Interaction, amount: int = 20):
+    if not interaction.user.guild_permissions.manage_messages and interaction.user.id not in OWNER_IDS:
+        return await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
+    if not await check_admin_channel(interaction): return
+
+    await interaction.response.defer(ephemeral=True)
+    deleted = await interaction.channel.purge(limit=min(amount, 100), check=lambda m: m.author.bot)
+    await interaction.followup.send(f"🧹 Cleared **{len(deleted)}** bot messages.", ephemeral=True)
+
+@bot.tree.command(name="clear_user", description="Purge messages sent by a specific user")
+@app_commands.describe(member="Target member", amount="Number of messages to scan")
+async def clear_user(interaction: discord.Interaction, member: discord.Member, amount: int = 20):
+    if not interaction.user.guild_permissions.manage_messages and interaction.user.id not in OWNER_IDS:
+        return await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
+    if not await check_admin_channel(interaction): return
+
+    await interaction.response.defer(ephemeral=True)
+    deleted = await interaction.channel.purge(limit=min(amount, 100), check=lambda m: m.author == member)
+    await interaction.followup.send(f"🧹 Cleared **{len(deleted)}** messages from {member.mention}.", ephemeral=True)
+
+# ==================== لوحة أوامر الأونر الـ VIP الفاخرة ====================
 
 @bot.tree.command(name="ownerhelp", description="Ultimate VIP Command Panel (Bot Owner Only)")
 async def ownerhelp(interaction: discord.Interaction):
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
-        await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
-        return
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
 
     embed = discord.Embed(title=get_text(interaction.guild.id, "owner_help_title"), color=discord.Color.gold())
     
     roles_cmd = (
-        "👑 `/giverole [member] [role]` - Give a role to a member\n"
-        "👑 `/removerole [member] [role]` - Remove a role from a member\n"
-        "👑 `/roleall [role]` - Mass assign a role to ALL members"
+        "👑 `/giverole [member] [role]` - Assign role to member\n"
+        "👑 `/removerole [member] [role]` - Remove role from member\n"
+        "👑 `/roleall [role]` - Mass assign role to ALL members"
     )
     embed.add_field(name="🎭 Role Management System", value=roles_cmd, inline=False)
 
     channels_cmd = (
-        "⚡ `/nuke` - Duplicate & purge channel history completely\n"
-        "⚡ `/createchannel [name] [type]` - Instantly create text/voice channel\n"
+        "⚡ `/nuke` - Clone & purge channel history completely\n"
+        "⚡ `/createchannel [name] [type]` - Create text/voice channel\n"
         "⚡ `/deletechannel [channel]` - Delete a channel instantly\n"
         "⚡ `/lock` / `/unlock` - Instantly lock/unlock channel\n"
         "⚡ `/slowmode [seconds]` - Control channel slowmode"
     )
-    embed.add_field(name="🛠️ Advanced Channel Management", value=channels_cmd, inline=False)
+    embed.add_field(name="🛠️ Channel Control & Purge", value=channels_cmd, inline=False)
 
     voice_cmd = (
-        "🎙️ `/vmute [member]` - Mute member in voice channel\n"
-        "🎙️ `/vunmute [member]` - Unmute member in voice channel\n"
-        "🎙️ `/vkick [member]` - Disconnect member from voice channel"
+        "🎙️ `/vmute [member]` - Mute member in voice\n"
+        "🎙️ `/vunmute [member]` - Unmute member in voice\n"
+        "🎙️ `/vkick [member]` - Disconnect member from voice"
     )
     embed.add_field(name="🎙️ Voice Control System", value=voice_cmd, inline=False)
 
     broad_cmd = (
-        "📢 `/embed [title] [description] [color]` - Broadcast rich custom embed\n"
-        "📢 `/say [message]` - Make the bot talk in channel\n"
-        "📢 `/nick [member] [nickname]` - Change any member's server nickname"
+        "📢 `/embed [title] [description]` - Broadcast rich custom embed\n"
+        "📢 `/say [message]` - Make bot talk in channel\n"
+        "📢 `/nick [member] [nickname]` - Change member nickname"
     )
-    embed.add_field(name="📢 Announcements & Utility Tools", value=broad_cmd, inline=False)
+    embed.add_field(name="📢 Announcements & Utility", value=broad_cmd, inline=False)
 
     setup_cmd = (
-        "🎫 `/setup_tickets` - Deploy interactive support tickets\n"
+        "🎫 `/setup_tickets` - Deploy interactive support ticket panel\n"
         "🎁 `/giveaway [prize] [duration]` - Host automated giveaway\n"
-        "🌐 `/setlanguage [code]` - Switch server language dropdown"
+        "🌐 `/setlanguage` - Select server language from dropdown list"
     )
     embed.add_field(name="⚙️ Configuration & Setup", value=setup_cmd, inline=False)
 
-    embed.set_footer(text="VoidCraft VIP Suite - Premium Monthly Edition")
+    embed.set_footer(text="VoidCraft VIP Suite - Premium Edition")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 # ==================== أوامر الأونر الـ VIP ====================
@@ -283,10 +357,8 @@ async def nuke(interaction: discord.Interaction):
 async def createchannel(interaction: discord.Interaction, name: str, is_voice: bool = False):
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
         return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
-    if is_voice:
-        c = await interaction.guild.create_voice_channel(name)
-    else:
-        c = await interaction.guild.create_text_channel(name)
+    if is_voice: c = await interaction.guild.create_voice_channel(name)
+    else: c = await interaction.guild.create_text_channel(name)
     await interaction.response.send_message(f"✅ Created channel {c.mention}.")
 
 @bot.tree.command(name="deletechannel", description="Delete a channel (Owner Only)")
@@ -305,8 +377,7 @@ async def vmute(interaction: discord.Interaction, member: discord.Member):
     if member.voice:
         await member.edit(mute=True)
         await interaction.response.send_message(f"🔇 Voice muted {member.mention}.")
-    else:
-        await interaction.response.send_message("❌ Member is not in a voice channel!", ephemeral=True)
+    else: await interaction.response.send_message("❌ Member is not in a voice channel!", ephemeral=True)
 
 @bot.tree.command(name="vunmute", description="Voice Unmute member (Owner Only)")
 @app_commands.describe(member="Member")
@@ -316,8 +387,7 @@ async def vunmute(interaction: discord.Interaction, member: discord.Member):
     if member.voice:
         await member.edit(mute=False)
         await interaction.response.send_message(f"🔊 Voice unmuted {member.mention}.")
-    else:
-        await interaction.response.send_message("❌ Member is not in a voice channel!", ephemeral=True)
+    else: await interaction.response.send_message("❌ Member is not in a voice channel!", ephemeral=True)
 
 @bot.tree.command(name="vkick", description="Kick member from voice (Owner Only)")
 @app_commands.describe(member="Member")
@@ -327,8 +397,7 @@ async def vkick(interaction: discord.Interaction, member: discord.Member):
     if member.voice:
         await member.move_to(None)
         await interaction.response.send_message(f"👢 Kicked {member.mention} from voice channel.")
-    else:
-        await interaction.response.send_message("❌ Member is not in a voice channel!", ephemeral=True)
+    else: await interaction.response.send_message("❌ Member is not in a voice channel!", ephemeral=True)
 
 @bot.tree.command(name="embed", description="Send rich custom embed broadcast (Owner Only)")
 @app_commands.describe(title="Title", description="Description")
@@ -355,12 +424,17 @@ async def nick(interaction: discord.Interaction, member: discord.Member, nicknam
     await member.edit(nick=nickname)
     await interaction.response.send_message(f"✅ Changed nickname for {member.mention} to `{nickname}`.")
 
-# ==================== أمر إعداد اللغة ====================
+# ==================== أمر إعداد اللغة الخيالي ====================
 
 @bot.tree.command(name="setlanguage", description="Change bot language for this server (Owner Only)")
 @app_commands.choices(language_code=[
     app_commands.Choice(name="🇺🇸 English", value="en"),
-    app_commands.Choice(name="🇸🇦 العربية", value="ar")
+    app_commands.Choice(name="🇸🇦 العربية", value="ar"),
+    app_commands.Choice(name="🇫🇷 Français", value="fr"),
+    app_commands.Choice(name="🇪🇸 Español", value="es"),
+    app_commands.Choice(name="🇩🇪 Deutsch", value="de"),
+    app_commands.Choice(name="🇹🇷 Türkçe", value="tr"),
+    app_commands.Choice(name="🇷🇺 Русский", value="ru")
 ])
 async def setlanguage(interaction: discord.Interaction, language_code: app_commands.Choice[str]):
     if interaction.user.id not in OWNER_IDS and interaction.user != interaction.guild.owner:
@@ -376,12 +450,11 @@ async def setlanguage(interaction: discord.Interaction, language_code: app_comma
 @bot.tree.command(name="help", description="General member command list")
 async def help_command(interaction: discord.Interaction):
     embed = discord.Embed(title=get_text(interaction.guild.id, "help_title"), color=discord.Color.blurple())
-    embed.add_field(name="📊 `/level`", value="Check current level & XP stats.", inline=False)
-    embed.add_field(name="👤 `/userinfo`", value="Display user account info.", inline=False)
-    embed.add_field(name="🖼️ `/avatar`", value="Display user avatar image.", inline=False)
-    embed.add_field(name="🏰 `/serverinfo`", value="Display server stats & info.", inline=False)
-    embed.add_field(name="🏓 `/ping`", value="Check bot latency.", inline=False)
-    embed.add_field(name="🤖 `/botinfo`", value="Display bot ecosystem stats.", inline=False)
+    embed.add_field(name="📊 `/level`", value="Check level & XP stats.", inline=False)
+    embed.add_field(name="💰 `/daily` / `/balance` / `/pay`", value="Economy & Coin banking tools.", inline=False)
+    embed.add_field(name="🎲 `/coinflip` / `/roll`", value="Fun games.", inline=False)
+    embed.add_field(name="👤 `/userinfo` / `/avatar`", value="Account info & profile photo.", inline=False)
+    embed.add_field(name="🏰 `/serverinfo` / `/botinfo` / `/ping`", value="Ecosystem stats.", inline=False)
     embed.set_footer(text="VoidCraft Ecosystem - Global Edition")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -395,16 +468,11 @@ async def adminhelp(interaction: discord.Interaction):
     embed = discord.Embed(title=get_text(interaction.guild.id, "admin_help_title"), color=discord.Color.dark_red())
     
     mod_text = (
-        "🔇 `/mute [member] [minutes] [reason]` - Timeout a member\n"
-        "🔊 `/unmute [member]` - Remove timeout\n"
-        "👢 `/kick [member] [reason]` - Kick a member\n"
-        "🔨 `/ban [member] [reason]` - Ban a member permanently\n"
-        "🔓 `/unban [user_id]` - Unban a user by ID\n"
-        "⚠️ `/warn [member] [reason]` - Add warning\n"
-        "🧹 `/remove_warning [member] [index]` - Remove a specific warning\n"
-        "🗑️ `/clear_warnings [member]` - Clear all warnings for member\n"
-        "📋 `/infractions [member]` - View member warning history\n"
-        "🧹 `/clear [amount]` - Purge chat messages (1-100)"
+        "🔇 `/mute` / `unmute` - Timeout & remove timeout\n"
+        "👢 `/kick` / `ban` / `unban` - Kick, ban & unban user\n"
+        "⚠️ `/warn` / `remove_warning` / `clear_warnings` - Warning system\n"
+        "📋 `/infractions` - View warning logs\n"
+        "🧹 `/clear` / `clear_bots` / `clear_user` - Purge chat messages"
     )
     embed.add_field(name=get_text(interaction.guild.id, "mod_title"), value=mod_text, inline=False)
 
@@ -412,7 +480,7 @@ async def adminhelp(interaction: discord.Interaction):
         "⚡ **Anti-Exe / Anti-Malware:** Auto-mutes & kicks suspicious file uploads\n"
         "⚡ **Anti-Discord Invite:** Auto-mutes external Discord server invite spam\n"
         "⚡ **Anti-Spam:** Auto-mutes repeated fast messaging\n"
-        "⚡ **Public Channel Shield:** Auto-logs any staff attempting commands in public channels"
+        "⚡ **Public Channel Shield:** Auto-logs staff command usage in public channels"
     )
     embed.add_field(name=get_text(interaction.guild.id, "sec_title"), value=sec_text, inline=False)
 
@@ -593,34 +661,6 @@ async def warn(interaction: discord.Interaction, member: discord.Member, reason:
     user_warnings[member.id].append(reason)
     await interaction.response.send_message(f"⚠️ Warned {member.mention}. Reason: `{reason}`")
     await send_punishment_log(interaction.guild, member, interaction.user, "WARN ⚠️", reason, f"Warn #{len(user_warnings[member.id])}")
-
-@bot.tree.command(name="remove_warning", description="Remove a specific warning from a member")
-@app_commands.describe(member="Target member", index="Warning number (1, 2, 3...)")
-async def remove_warning(interaction: discord.Interaction, member: discord.Member, index: int):
-    if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
-        return
-    if not await check_admin_channel(interaction): return
-
-    warns = user_warnings[member.id]
-    if 1 <= index <= len(warns):
-        removed_reason = warns.pop(index - 1)
-        await interaction.response.send_message(get_text(interaction.guild.id, "warn_removed", index=index, member=member.mention))
-        await send_punishment_log(interaction.guild, member, interaction.user, "REMOVE_WARN 🧹", f"Removed warning #{index}: {removed_reason}", "None")
-    else:
-        await interaction.response.send_message("❌ Invalid warning index number!", ephemeral=True)
-
-@bot.tree.command(name="clear_warnings", description="Clear all warnings for a member")
-@app_commands.describe(member="Target member")
-async def clear_warnings(interaction: discord.Interaction, member: discord.Member):
-    if not interaction.user.guild_permissions.moderate_members and interaction.user.id not in OWNER_IDS:
-        await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
-        return
-    if not await check_admin_channel(interaction): return
-
-    user_warnings[member.id].clear()
-    await interaction.response.send_message(get_text(interaction.guild.id, "warn_cleared", member=member.mention))
-    await send_punishment_log(interaction.guild, member, interaction.user, "REMOVE_WARN 🧹", "Cleared all warnings", "None")
 
 @bot.tree.command(name="infractions", description="Check warnings")
 @app_commands.describe(member="Target")
