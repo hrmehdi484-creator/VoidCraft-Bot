@@ -951,8 +951,8 @@ async def on_message(message):
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", "voidcraft_secret_key_12345")
 
-DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "")
-DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "")
+DISCORD_CLIENT_ID = os.environ.get("1532076922241024090", "")
+DISCORD_CLIENT_SECRET = os.environ.get("vSi6Lmm5qU6j3wkdI04x4zJCnSTqk079", "")
 REDIRECT_URI = os.environ.get("REDIRECT_URI", "https://voidcraft-bot.onrender.com/callback")
 
 OAUTH2_URL = f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri={REDIRECT_URI}&response_type=code&scope=identify%20guilds"
