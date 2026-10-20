@@ -810,7 +810,8 @@ async def on_message(message):
     update_user_data(author_id, xp=xp + 10)
 
     await bot.process_commands(message)
-    # ==============================================================================
+
+# ==============================================================================
 #            خادم الويب وواجهة الموقع الإلكتروني (Flask & Frontend)
 # ==============================================================================
 
@@ -940,50 +941,6 @@ HTML_HOME_PAGE = """
 @app.route("/")
 def home():
     return render_template_string(HTML_HOME_PAGE)
-
-@app.route("/api/stats", methods=["GET"])
-def api_stats():
-    return jsonify({
-        "servers": len(bot.guilds),
-        "users": sum(g.member_count for g in bot.guilds)
-    })
-
-@app.route("/api/activate", methods=["POST"])
-def api_activate():
-    data = request.json
-    guild_id = data.get("guild_id")
-    if not guild_id: return jsonify({"error": "Missing guild_id"}), 400
-    
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("UPDATE guild_settings SET is_premium = 1 WHERE guild_id = ?", (guild_id,))
-    conn.commit()
-    conn.close()
-    
-    return jsonify({"success": True, "message": f"Guild {guild_id} activated successfully!"})
-
-def run_bot():
-    token = os.environ.get("DISCORD_TOKEN")
-    if token: bot.run(token)
-    else: print("❌ Error: DISCORD_TOKEN not found!")
-
-bot_thread = threading.Thread(target=run_bot)
-bot_thread.daemon = True
-bot_thread.start()
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
-
-# ==============================================================================
-#            خادم الويب ونقاط الاتصال البرمجية (Flask API)
-# ==============================================================================
-
-app = Flask(__name__)
-
-@app.route("/")
-def home():
-    return "VoidCraft Bot & API are running 24/7!"
 
 @app.route("/api/stats", methods=["GET"])
 def api_stats():
