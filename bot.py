@@ -10,7 +10,8 @@ import os
 import random
 import asyncio
 import sqlite3
-from flask import Flask, jsonify, request
+import requests
+from flask import Flask, jsonify, request, redirect, session, url_for, render_template_string
 
 # ==============================================================================
 #                      إعداد قاعدة البيانات الدائمة (SQLite)
@@ -21,17 +22,21 @@ DB_FILE = "bot_data.db"
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users (
-                    user_id INTEGER PRIMARY KEY,
-                    xp INTEGER DEFAULT 0,
-                    balance INTEGER DEFAULT 100
-                )''')
-    c.execute('''CREATE TABLE IF NOT EXISTS guild_settings (
-                    guild_id INTEGER PRIMARY KEY,
-                    language TEXT DEFAULT 'en',
-                    is_premium INTEGER DEFAULT 0,
-                    expiry_date TEXT
-                )''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY,
+            xp INTEGER DEFAULT 0,
+            balance INTEGER DEFAULT 100
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS guild_settings (
+            guild_id INTEGER PRIMARY KEY,
+            language TEXT DEFAULT 'en',
+            is_premium INTEGER DEFAULT 0,
+            expiry_date TEXT
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -103,24 +108,43 @@ OWNER_IDS = [1335193543660273716]
 MY_SERVER_INVITE = "discord.gg/voidcraft"
 
 ALLOWED_PLATFORMS = [
-    "youtube.com", "youtu.be", 
+    "youtube.com", 
+    "youtu.be", 
     "tiktok.com", 
     "instagram.com", 
     "snapchat.com", 
-    "facebook.com", "fb.watch", 
+    "facebook.com", 
+    "fb.watch", 
     "twitch.tv", 
-    "twitter.com", "x.com"
+    "twitter.com", 
+    "x.com"
 ]
 
 DANGEROUS_EXTENSIONS = [
-    '.exe', '.scr', '.bat', '.cmd', '.vbs', '.js', '.jse', '.wsf', '.wsh',
-    '.ps1', '.msi', '.com', '.pif', '.reg', '.dll', '.iso', '.dmg',
-    '.apk', '.zip', '.rar', '.7z', '.tar', '.gz'
+    '.exe', 
+    '.scr', 
+    '.bat', 
+    '.cmd', 
+    '.vbs', 
+    '.js', 
+    '.jse', 
+    '.wsf', 
+    '.wsh',
+    '.ps1', 
+    '.msi', 
+    '.com', 
+    '.pif', 
+    '.reg', 
+    '.dll', 
+    '.iso', 
+    '.dmg',
+    '.apk', 
+    '.zip', 
+    '.rar', 
+    '.7z', 
+    '.tar', 
+    '.gz'
 ]
-
-# ==============================================================================
-#          دالة التحقق الذكية للأونر ومالك السيرفر المشتري تلقائياً
-# ==============================================================================
 
 def is_owner_or_guild_owner(interaction: discord.Interaction):
     if interaction.user.id in OWNER_IDS or interaction.user == interaction.guild.owner:
@@ -148,9 +172,7 @@ TRANSLATIONS = {
         "mod_title": "🔨 Moderation & Punishments System",
         "ctrl_title": "⚙️ Channel & Server Control",
         "setup_title": "🎫 Setup, Tickets & Giveaways",
-        "lang_changed": "🌐 Server language successfully set to: **{lang}**",
-        "warn_removed": "✅ Removed warning index **{index}** from {member}.",
-        "warn_cleared": "🧹 Cleared all warnings for {member}."
+        "lang_changed": "🌐 Server language successfully set to: **{lang}**"
     },
     "ar": {
         "staff_only": "❌ عذراً، هذا الأمر مخصص للإدارة فقط!",
@@ -168,29 +190,32 @@ TRANSLATIONS = {
         "mod_title": "🔨 نظام العقوبات وإدارة الأعضاء",
         "ctrl_title": "⚙️ التحكم بالقنوات والسيرفر",
         "setup_title": "🎫 الإعدادات والمسابقات والتكتات",
-        "lang_changed": "🌐 تم تغيير لغة السيرفر بنجاح إلى: **{lang}**",
-        "warn_removed": "✅ تم حذف التحذير رقم **{index}** من العضو {member}.",
-        "warn_cleared": "🧹 تم مسح جميع التحذيرات المسجلة بحق العضو {member}."
+        "lang_changed": "🌐 تم تغيير لغة السيرفر بنجاح إلى: **{lang}**"
     }
 }
 
 def get_text(guild_id, key, **kwargs):
     lang = get_server_lang(guild_id) if guild_id else "en"
-    if lang not in TRANSLATIONS: lang = "en"
+    if lang not in TRANSLATIONS:
+        lang = "en"
     text = TRANSLATIONS[lang].get(key, TRANSLATIONS["en"].get(key, key))
     return text.format(**kwargs)
 
 # ==============================================================================
-#                       دالة إرسال سجل العقوبات واللوغات
+#                       دالة إرسال سجل العقوبات
 # ==============================================================================
 
 async def send_punishment_log(guild, member, executor, punishment_type, reason, duration="Permanent"):
-    ban_channel = (discord.utils.get(guild.text_channels, name="ban") or 
-                   discord.utils.get(guild.text_channels, name="البان") or 
-                   discord.utils.get(guild.text_channels, name="bans"))
+    ban_channel = (
+        discord.utils.get(guild.text_channels, name="ban") or 
+        discord.utils.get(guild.text_channels, name="البان") or 
+        discord.utils.get(guild.text_channels, name="bans")
+    )
 
-    logs_channel = (discord.utils.get(guild.text_channels, name="logs") or 
-                    discord.utils.get(guild.text_channels, name="سجل-المراقبة"))
+    logs_channel = (
+        discord.utils.get(guild.text_channels, name="logs") or 
+        discord.utils.get(guild.text_channels, name="سجل-المراقبة")
+    )
 
     color_map = {
         "MUTE 🔇": discord.Color.orange(),
@@ -199,7 +224,6 @@ async def send_punishment_log(guild, member, executor, punishment_type, reason, 
         "WARN ⚠️": discord.Color.yellow(),
         "UNMUTE 🔊": discord.Color.green(),
         "UNBAN 🔓": discord.Color.blue(),
-        "REMOVE_WARN 🧹": discord.Color.teal(),
         "SECURITY 🚨": discord.Color.dark_red()
     }
 
@@ -212,19 +236,24 @@ async def send_punishment_log(guild, member, executor, punishment_type, reason, 
     embed.add_field(name=get_text(guild.id, "executor"), value=f"{executor.mention if hasattr(executor, 'mention') else executor}", inline=True)
     embed.add_field(name=get_text(guild.id, "duration"), value=f"**{duration}**", inline=True)
     embed.add_field(name=get_text(guild.id, "reason"), value=f"`{reason}`", inline=False)
+    
     if hasattr(member, 'avatar') and member.avatar:
         embed.set_thumbnail(url=member.avatar.url)
 
     if ban_channel:
-        try: await ban_channel.send(embed=embed)
-        except Exception as e: print(f"Error ban log: {e}")
+        try:
+            await ban_channel.send(embed=embed)
+        except Exception as e:
+            print(f"Error ban log: {e}")
 
     if logs_channel and logs_channel != ban_channel:
-        try: await logs_channel.send(embed=embed)
-        except Exception as e: print(f"Error audit log: {e}")
+        try:
+            await logs_channel.send(embed=embed)
+        except Exception as e:
+            print(f"Error audit log: {e}")
 
 # ==============================================================================
-#                      أحداث البوت الأساسية وتسجيل الدخول
+#                      أحداث البوت الأساسية
 # ==============================================================================
 
 @bot.event
@@ -238,28 +267,42 @@ async def on_ready():
 
 @bot.event
 async def on_message_delete(message):
-    if message.author.bot or message.guild is None: return
+    if message.author.bot or message.guild is None:
+        return
     logs_channel = discord.utils.get(message.guild.text_channels, name="logs")
     if logs_channel:
-        embed = discord.Embed(title="🗑️ Message Deleted", color=discord.Color.red(), timestamp=discord.utils.utcnow())
+        embed = discord.Embed(
+            title="🗑️ Message Deleted", 
+            color=discord.Color.red(), 
+            timestamp=discord.utils.utcnow()
+        )
         embed.add_field(name="Author", value=message.author.mention, inline=True)
         embed.add_field(name="Channel", value=message.channel.mention, inline=True)
         embed.add_field(name="Content", value=message.content or "[Attachment]", inline=False)
-        try: await logs_channel.send(embed=embed)
-        except: pass
+        try:
+            await logs_channel.send(embed=embed)
+        except:
+            pass
 
 @bot.event
 async def on_message_edit(before, after):
-    if before.author.bot or before.guild is None or before.content == after.content: return
+    if before.author.bot or before.guild is None or before.content == after.content:
+        return
     logs_channel = discord.utils.get(before.guild.text_channels, name="logs")
     if logs_channel:
-        embed = discord.Embed(title="✏️ Message Edited", color=discord.Color.blue(), timestamp=discord.utils.utcnow())
+        embed = discord.Embed(
+            title="✏️ Message Edited", 
+            color=discord.Color.blue(), 
+            timestamp=discord.utils.utcnow()
+        )
         embed.add_field(name="Author", value=before.author.mention, inline=True)
         embed.add_field(name="Channel", value=before.channel.mention, inline=True)
         embed.add_field(name="Before", value=before.content or "None", inline=False)
         embed.add_field(name="After", value=after.content or "None", inline=False)
-        try: await logs_channel.send(embed=embed)
-        except: pass
+        try:
+            await logs_channel.send(embed=embed)
+        except:
+            pass
 
 # ==============================================================================
 #                     التحقق من قنوات الإدارة والتحصين الأمني
@@ -270,29 +313,35 @@ def is_staff_channel(channel):
     return any(keyword in name for keyword in ["admin", "staff", "console", "owner", "ادارة", "الإدارة", "cmd"])
 
 async def check_admin_channel(interaction: discord.Interaction):
-    if is_owner_or_guild_owner(interaction): return True
+    if is_owner_or_guild_owner(interaction):
+        return True
     
     if not is_staff_channel(interaction.channel):
-        logs_channel = (discord.utils.get(interaction.guild.text_channels, name="logs") or 
-                        discord.utils.get(interaction.guild.text_channels, name="سجل-المراقبة"))
+        logs_channel = (
+            discord.utils.get(interaction.guild.text_channels, name="logs") or 
+            discord.utils.get(interaction.guild.text_channels, name="سجل-المراقبة")
+        )
         if logs_channel:
             embed = discord.Embed(
                 title="🚨 [SECURITY VIOLATION - Public Channel Command Usage]", 
-                description=f"⚠️ **Staff member attempted to run an admin command in a public channel!**",
-                color=discord.Color.dark_red(), timestamp=discord.utils.utcnow()
+                description="⚠️ **Staff member attempted to run an admin command in a public channel!**",
+                color=discord.Color.dark_red(), 
+                timestamp=discord.utils.utcnow()
             )
             embed.add_field(name="Violator", value=f"{interaction.user.mention} (`{interaction.user.id}`)", inline=True)
             embed.add_field(name="Channel", value=interaction.channel.mention, inline=True)
             embed.add_field(name="Command", value=f"`/{interaction.command.name}`", inline=False)
-            try: await logs_channel.send(embed=embed)
-            except: pass
+            try:
+                await logs_channel.send(embed=embed)
+            except:
+                pass
         
         await interaction.response.send_message(get_text(interaction.guild.id, "admin_channel_err"), ephemeral=True)
         return False
     return True
 
 # ==============================================================================
-#            👑 لوحة التحكم الشاملة (تحتوي على كل أوامر السيرفر في مكان واحد)
+#            👑 لوحة التحكم الشاملة (جميع الأوامر)
 # ==============================================================================
 
 @bot.tree.command(name="ownerhelp", description="Master Control Panel: All Bot Commands in One Place")
@@ -363,7 +412,7 @@ async def ownerhelp(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 # ==============================================================================
-#                       أوامر الاقتصاد والتسلية الحلال
+#                       أوامر الاقتصاد والتسلية
 # ==============================================================================
 
 @bot.tree.command(name="daily", description="Claim daily coins reward")
@@ -372,7 +421,10 @@ async def daily(interaction: discord.Interaction):
     current_time = time.time()
     if current_time - last_daily[user_id] < 86400:
         remaining = int(86400 - (current_time - last_daily[user_id]))
-        return await interaction.response.send_message(f"⌛ Wait **{remaining//3600}h {(remaining%3600)//60}m**.", ephemeral=True)
+        return await interaction.response.send_message(
+            f"⌛ Wait **{remaining//3600}h {(remaining%3600)//60}m**.", 
+            ephemeral=True
+        )
     
     reward = random.randint(200, 500)
     xp, bal = get_user_data(user_id)
@@ -390,9 +442,12 @@ async def balance(interaction: discord.Interaction, member: discord.Member = Non
 @bot.tree.command(name="pay", description="Gift coins")
 @app_commands.describe(member="Target member", amount="Amount")
 async def pay(interaction: discord.Interaction, member: discord.Member, amount: int):
-    if amount <= 0: return await interaction.response.send_message("❌ Invalid amount!", ephemeral=True)
+    if amount <= 0:
+        return await interaction.response.send_message("❌ Invalid amount!", ephemeral=True)
+    
     _, sender_bal = get_user_data(interaction.user.id)
-    if sender_bal < amount: return await interaction.response.send_message("❌ Insufficient funds!", ephemeral=True)
+    if sender_bal < amount:
+        return await interaction.response.send_message("❌ Insufficient funds!", ephemeral=True)
     
     update_user_data(interaction.user.id, balance=sender_bal - amount)
     _, target_bal = get_user_data(member.id)
@@ -408,9 +463,16 @@ QUIZ_QUESTIONS = [
 @bot.tree.command(name="quiz", description="Play trivia quiz game")
 async def quiz(interaction: discord.Interaction):
     item = random.choice(QUIZ_QUESTIONS)
-    embed = discord.Embed(title="🧠 Trivia Quiz", description=f"**Question:** {item['q']}\n\n*Type answer in 15s!*", color=discord.Color.teal())
+    embed = discord.Embed(
+        title="🧠 Trivia Quiz", 
+        description=f"**Question:** {item['q']}\n\n*Type answer in 15s!*", 
+        color=discord.Color.teal()
+    )
     await interaction.response.send_message(embed=embed)
-    def check(m): return m.channel == interaction.channel and m.content.lower() == item['a'].lower()
+    
+    def check(m):
+        return m.channel == interaction.channel and m.content.lower() == item['a'].lower()
+    
     try:
         msg = await bot.wait_for('message', timeout=15.0, check=check)
         await interaction.channel.send(f"🎉 Correct {msg.author.mention}! Answer: **{item['a']}**.")
@@ -427,28 +489,34 @@ async def roll(interaction: discord.Interaction):
 
 @bot.tree.command(name="giverole", description="Give role to member")
 async def giverole(interaction: discord.Interaction, member: discord.Member, role: discord.Role):
-    if not is_owner_or_guild_owner(interaction): return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if not is_owner_or_guild_owner(interaction):
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
     await member.add_roles(role)
     await interaction.response.send_message(f"✅ Added {role.mention} to {member.mention}.")
 
 @bot.tree.command(name="removerole", description="Remove role from member")
 async def removerole(interaction: discord.Interaction, member: discord.Member, role: discord.Role):
-    if not is_owner_or_guild_owner(interaction): return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if not is_owner_or_guild_owner(interaction):
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
     await member.remove_roles(role)
     await interaction.response.send_message(f"✅ Removed {role.mention} from {member.mention}.")
 
 @bot.tree.command(name="roleall", description="Assign role to ALL members")
 async def roleall(interaction: discord.Interaction, role: discord.Role):
-    if not is_owner_or_guild_owner(interaction): return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if not is_owner_or_guild_owner(interaction):
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
     await interaction.response.send_message("⏳ Assigning role to all members...")
     for member in interaction.guild.members:
-        try: await member.add_roles(role)
-        except: pass
+        try:
+            await member.add_roles(role)
+        except:
+            pass
     await interaction.followup.send(f"✅ Added {role.mention} to all members!")
 
 @bot.tree.command(name="nuke", description="Clone and clear channel history")
 async def nuke(interaction: discord.Interaction):
-    if not is_owner_or_guild_owner(interaction): return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if not is_owner_or_guild_owner(interaction):
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
     channel = interaction.channel
     pos = channel.position
     new_c = await channel.clone(reason="Nuke channel")
@@ -458,63 +526,83 @@ async def nuke(interaction: discord.Interaction):
 
 @bot.tree.command(name="createchannel", description="Create new channel")
 async def createchannel(interaction: discord.Interaction, name: str, is_voice: bool = False):
-    if not is_owner_or_guild_owner(interaction): return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
-    c = await interaction.guild.create_voice_channel(name) if is_voice else await interaction.guild.create_text_channel(name)
+    if not is_owner_or_guild_owner(interaction):
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if is_voice:
+        c = await interaction.guild.create_voice_channel(name)
+    else:
+        c = await interaction.guild.create_text_channel(name)
     await interaction.response.send_message(f"✅ Created {c.mention}.")
 
 @bot.tree.command(name="deletechannel", description="Delete a channel")
 async def deletechannel(interaction: discord.Interaction, channel: discord.abc.GuildChannel):
-    if not is_owner_or_guild_owner(interaction): return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if not is_owner_or_guild_owner(interaction):
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
     await channel.delete()
     await interaction.response.send_message("✅ Channel deleted.")
 
 @bot.tree.command(name="vmute", description="Voice Mute member")
 async def vmute(interaction: discord.Interaction, member: discord.Member):
-    if not is_owner_or_guild_owner(interaction): return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if not is_owner_or_guild_owner(interaction):
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
     if member.voice:
         await member.edit(mute=True)
         await interaction.response.send_message(f"🔇 Voice muted {member.mention}.")
-    else: await interaction.response.send_message("❌ Not in voice!", ephemeral=True)
+    else:
+        await interaction.response.send_message("❌ Not in voice!", ephemeral=True)
 
 @bot.tree.command(name="vunmute", description="Voice Unmute member")
 async def vunmute(interaction: discord.Interaction, member: discord.Member):
-    if not is_owner_or_guild_owner(interaction): return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if not is_owner_or_guild_owner(interaction):
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
     if member.voice:
         await member.edit(mute=False)
         await interaction.response.send_message(f"🔊 Voice unmuted {member.mention}.")
-    else: await interaction.response.send_message("❌ Not in voice!", ephemeral=True)
+    else:
+        await interaction.response.send_message("❌ Not in voice!", ephemeral=True)
 
 @bot.tree.command(name="vkick", description="Kick member from voice")
 async def vkick(interaction: discord.Interaction, member: discord.Member):
-    if not is_owner_or_guild_owner(interaction): return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if not is_owner_or_guild_owner(interaction):
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
     if member.voice:
         await member.move_to(None)
         await interaction.response.send_message(f"👢 Kicked {member.mention} from voice.")
-    else: await interaction.response.send_message("❌ Not in voice!", ephemeral=True)
+    else:
+        await interaction.response.send_message("❌ Not in voice!", ephemeral=True)
 
 @bot.tree.command(name="embed", description="Send custom embed")
 async def embed_cmd(interaction: discord.Interaction, title: str, description: str):
-    if not is_owner_or_guild_owner(interaction): return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if not is_owner_or_guild_owner(interaction):
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
     emb = discord.Embed(title=title, description=description, color=discord.Color.blue())
     await interaction.channel.send(embed=emb)
     await interaction.response.send_message("✅ Sent!", ephemeral=True)
 
 @bot.tree.command(name="say", description="Make bot talk")
 async def say(interaction: discord.Interaction, message: str):
-    if not is_owner_or_guild_owner(interaction): return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if not is_owner_or_guild_owner(interaction):
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
     await interaction.channel.send(message)
     await interaction.response.send_message("✅ Sent!", ephemeral=True)
 
 @bot.tree.command(name="nick", description="Change nickname")
 async def nick(interaction: discord.Interaction, member: discord.Member, nickname: str):
-    if not is_owner_or_guild_owner(interaction): return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if not is_owner_or_guild_owner(interaction):
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
     await member.edit(nick=nickname)
     await interaction.response.send_message(f"✅ Changed nickname to `{nickname}`.")
 
 @bot.tree.command(name="setlanguage", description="Change server language")
-@app_commands.choices(language_code=[app_commands.Choice(name="🇺🇸 English", value="en"), app_commands.Choice(name="🇸🇦 العربية", value="ar")])
+@app_commands.choices(
+    language_code=[
+        app_commands.Choice(name="🇺🇸 English", value="en"), 
+        app_commands.Choice(name="🇸🇦 العربية", value="ar")
+    ]
+)
 async def setlanguage(interaction: discord.Interaction, language_code: app_commands.Choice[str]):
-    if not is_owner_or_guild_owner(interaction): return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
+    if not is_owner_or_guild_owner(interaction):
+        return await interaction.response.send_message(get_text(interaction.guild.id, "owner_only"), ephemeral=True)
     set_server_lang(interaction.guild.id, language_code.value)
     await interaction.response.send_message(get_text(interaction.guild.id, "lang_changed", lang=language_code.name))
 
@@ -526,96 +614,116 @@ async def setlanguage(interaction: discord.Interaction, language_code: app_comma
 async def slash_mute(interaction: discord.Interaction, member: discord.Member, minutes: int, reason: str):
     if not interaction.user.guild_permissions.moderate_members and not is_owner_or_guild_owner(interaction):
         return await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
-    if not await check_admin_channel(interaction): return
+    if not await check_admin_channel(interaction):
+        return
     try:
         await member.timeout(timedelta(minutes=minutes), reason=reason)
         await interaction.response.send_message(f"🔇 Muted {member.mention} for **{minutes}m**. Reason: `{reason}`")
         await send_punishment_log(interaction.guild, member, interaction.user, "MUTE 🔇", reason, f"{minutes}m")
-    except Exception as e: await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
 
 @bot.tree.command(name="unmute", description="Unmute member")
 async def slash_unmute(interaction: discord.Interaction, member: discord.Member):
     if not interaction.user.guild_permissions.moderate_members and not is_owner_or_guild_owner(interaction):
         return await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
-    if not await check_admin_channel(interaction): return
+    if not await check_admin_channel(interaction):
+        return
     try:
         await member.timeout(None)
         await interaction.response.send_message(f"🔊 Unmuted {member.mention}.")
         await send_punishment_log(interaction.guild, member, interaction.user, "UNMUTE 🔊", "Unmuted", "None")
-    except Exception as e: await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
 
 @bot.tree.command(name="kick", description="Kick member")
 async def slash_kick(interaction: discord.Interaction, member: discord.Member, reason: str):
     if not interaction.user.guild_permissions.kick_members and not is_owner_or_guild_owner(interaction):
         return await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
-    if not await check_admin_channel(interaction): return
+    if not await check_admin_channel(interaction):
+        return
     try:
         await send_punishment_log(interaction.guild, member, interaction.user, "KICK 👢", reason, "Kicked")
         await member.kick(reason=reason)
         await interaction.response.send_message(f"👢 Kicked {member.mention}.")
-    except Exception as e: await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
 
 @bot.tree.command(name="ban", description="Ban member")
 async def slash_ban(interaction: discord.Interaction, member: discord.Member, reason: str):
     if not interaction.user.guild_permissions.ban_members and not is_owner_or_guild_owner(interaction):
         return await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
-    if not await check_admin_channel(interaction): return
+    if not await check_admin_channel(interaction):
+        return
     try:
         await send_punishment_log(interaction.guild, member, interaction.user, "BAN 🔨", reason, "Permanent")
         await member.ban(reason=reason)
         await interaction.response.send_message(f"🔨 Banned {member.mention}.")
-    except Exception as e: await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
 
 @bot.tree.command(name="unban", description="Unban ID")
 async def slash_unban(interaction: discord.Interaction, user_id: str):
     if not interaction.user.guild_permissions.ban_members and not is_owner_or_guild_owner(interaction):
         return await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
-    if not await check_admin_channel(interaction): return
+    if not await check_admin_channel(interaction):
+        return
     try:
         user = await bot.fetch_user(int(user_id))
         await interaction.guild.unban(user)
         await interaction.response.send_message(f"🔓 Unbanned **{user.name}**.")
-    except Exception as e: await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
 
 @bot.tree.command(name="clear", description="Clear chat messages")
 async def slash_clear(interaction: discord.Interaction, amount: int = 10):
     if not interaction.user.guild_permissions.manage_messages and not is_owner_or_guild_owner(interaction):
         return await interaction.response.send_message(get_text(interaction.guild.id, "staff_only"), ephemeral=True)
-    if not await check_admin_channel(interaction): return
+    if not await check_admin_channel(interaction):
+        return
     try:
         await interaction.response.defer(ephemeral=True)
         deleted = await interaction.channel.purge(limit=min(amount, 100))
         await interaction.followup.send(f"🧹 Cleared **{len(deleted)}** messages.", ephemeral=True)
-    except Exception as e: await interaction.followup.send(f"❌ Error: {e}", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Error: {e}", ephemeral=True)
 
 @bot.tree.command(name="clear_bots", description="Purge bot messages")
 async def clear_bots(interaction: discord.Interaction, amount: int = 20):
-    if not interaction.user.guild_permissions.manage_messages and not is_owner_or_guild_owner(interaction): return
-    if not await check_admin_channel(interaction): return
+    if not interaction.user.guild_permissions.manage_messages and not is_owner_or_guild_owner(interaction):
+        return
+    if not await check_admin_channel(interaction):
+        return
     await interaction.response.defer(ephemeral=True)
     deleted = await interaction.channel.purge(limit=min(amount, 100), check=lambda m: m.author.bot)
     await interaction.followup.send(f"🧹 Cleared **{len(deleted)}** bot messages.", ephemeral=True)
 
 @bot.tree.command(name="clear_user", description="Purge user messages")
 async def clear_user(interaction: discord.Interaction, member: discord.Member, amount: int = 20):
-    if not interaction.user.guild_permissions.manage_messages and not is_owner_or_guild_owner(interaction): return
-    if not await check_admin_channel(interaction): return
+    if not interaction.user.guild_permissions.manage_messages and not is_owner_or_guild_owner(interaction):
+        return
+    if not await check_admin_channel(interaction):
+        return
     await interaction.response.defer(ephemeral=True)
     deleted = await interaction.channel.purge(limit=min(amount, 100), check=lambda m: m.author == member)
     await interaction.followup.send(f"🧹 Cleared **{len(deleted)}** messages.", ephemeral=True)
 
 @bot.tree.command(name="warn", description="Warn member")
 async def warn(interaction: discord.Interaction, member: discord.Member, reason: str):
-    if not interaction.user.guild_permissions.moderate_members and not is_owner_or_guild_owner(interaction): return
-    if not await check_admin_channel(interaction): return
+    if not interaction.user.guild_permissions.moderate_members and not is_owner_or_guild_owner(interaction):
+        return
+    if not await check_admin_channel(interaction):
+        return
     user_warnings[member.id].append(reason)
     await interaction.response.send_message(f"⚠️ Warned {member.mention}. Reason: `{reason}`")
     await send_punishment_log(interaction.guild, member, interaction.user, "WARN ⚠️", reason, f"Warn #{len(user_warnings[member.id])}")
 
 @bot.tree.command(name="infractions", description="Check warnings")
 async def infractions(interaction: discord.Interaction, member: discord.Member):
-    if not interaction.user.guild_permissions.moderate_members and not is_owner_or_guild_owner(interaction): return
-    if not await check_admin_channel(interaction): return
+    if not interaction.user.guild_permissions.moderate_members and not is_owner_or_guild_owner(interaction):
+        return
+    if not await check_admin_channel(interaction):
+        return
     warns = user_warnings[member.id]
     embed = discord.Embed(title=f"📋 Infractions for {member.name}", color=discord.Color.dark_purple())
     embed.add_field(name="Warnings Count", value=f"**{len(warns)}**", inline=True)
@@ -625,22 +733,28 @@ async def infractions(interaction: discord.Interaction, member: discord.Member):
 
 @bot.tree.command(name="lock", description="Lock channel")
 async def lock(interaction: discord.Interaction):
-    if not is_owner_or_guild_owner(interaction): return
-    if not await check_admin_channel(interaction): return
+    if not is_owner_or_guild_owner(interaction):
+        return
+    if not await check_admin_channel(interaction):
+        return
     await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=False)
     await interaction.response.send_message("🔒 Channel locked.")
 
 @bot.tree.command(name="unlock", description="Unlock channel")
 async def unlock(interaction: discord.Interaction):
-    if not is_owner_or_guild_owner(interaction): return
-    if not await check_admin_channel(interaction): return
+    if not is_owner_or_guild_owner(interaction):
+        return
+    if not await check_admin_channel(interaction):
+        return
     await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=True)
     await interaction.response.send_message("🔓 Channel unlocked.")
 
 @bot.tree.command(name="slowmode", description="Set slowmode")
 async def slowmode(interaction: discord.Interaction, seconds: int):
-    if not is_owner_or_guild_owner(interaction): return
-    if not await check_admin_channel(interaction): return
+    if not is_owner_or_guild_owner(interaction):
+        return
+    if not await check_admin_channel(interaction):
+        return
     await interaction.channel.edit(slowmode_delay=seconds)
     await interaction.response.send_message(f"⏱️ Slowmode set to {seconds}s.")
 
@@ -649,11 +763,13 @@ async def slowmode(interaction: discord.Interaction, seconds: int):
 # ==============================================================================
 
 class ConfirmCloseView(discord.ui.View):
-    def __init__(self): super().__init__(timeout=None)
+    def __init__(self):
+        super().__init__(timeout=None)
+        
     @discord.ui.button(label="Close Ticket", style=discord.ButtonStyle.danger, custom_id="confirm_close_btn")
     async def confirm_close(self, interaction: discord.Interaction, button: discord.ui.Button):
         guild, channel = interaction.guild, interaction.channel
-        embed = discord.Embed(title=f"🔒 Ticket Closed", color=discord.Color.gold())
+        embed = discord.Embed(title="🔒 Ticket Closed", color=discord.Color.gold())
         for target, overwrite in channel.overwrites.items():
             if target != guild.me and isinstance(target, discord.Member):
                 overwrite.view_channel = False
@@ -661,7 +777,9 @@ class ConfirmCloseView(discord.ui.View):
         await interaction.response.edit_message(content="🔒 Ticket closed.", embed=embed)
 
 class TicketButtonView(discord.ui.View):
-    def __init__(self): super().__init__(timeout=None)
+    def __init__(self):
+        super().__init__(timeout=None)
+        
     @discord.ui.button(label="Create Ticket", style=discord.ButtonStyle.primary, custom_id="create_ticket_btn", emoji="📩")
     async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         guild, member = interaction.guild, interaction.user
@@ -678,7 +796,8 @@ class TicketButtonView(discord.ui.View):
 
 @bot.tree.command(name="setup_tickets", description="Setup tickets panel")
 async def setup_tickets(interaction: discord.Interaction):
-    if not is_owner_or_guild_owner(interaction): return
+    if not is_owner_or_guild_owner(interaction):
+        return
     embed = discord.Embed(title="🎫 VoidCraft Support", description="Click below to open a ticket.", color=discord.Color.blurple())
     await interaction.channel.send(embed=embed, view=TicketButtonView())
     await interaction.response.send_message("✅ Panel sent.", ephemeral=True)
@@ -688,6 +807,7 @@ class GiveawayView(discord.ui.View):
         super().__init__(timeout=None)
         self.prize = prize
         self.participants = set()
+        
     @discord.ui.button(label="🎉 Enter Giveaway", style=discord.ButtonStyle.success, custom_id="enter_giveaway_btn")
     async def enter_giveaway(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id in self.participants:
@@ -698,16 +818,22 @@ class GiveawayView(discord.ui.View):
 
 @bot.tree.command(name="giveaway", description="Start automated giveaway")
 async def giveaway(interaction: discord.Interaction, prize: str, duration_minutes: int):
-    if not is_owner_or_guild_owner(interaction): return
-    embed = discord.Embed(title="🎁 GIVEAWAY STARTED!", description=f"Prize: **{prize}**\nDuration: **{duration_minutes}m**", color=discord.Color.gold())
+    if not is_owner_or_guild_owner(interaction):
+        return
+    embed = discord.Embed(
+        title="🎁 GIVEAWAY STARTED!", 
+        description=f"Prize: **{prize}**\nDuration: **{duration_minutes}m**", 
+        color=discord.Color.gold()
+    )
     view = GiveawayView(prize)
     await interaction.response.send_message(embed=embed, view=view)
     await asyncio.sleep(duration_minutes * 60)
+    
     if view.participants:
         winner = interaction.guild.get_member(random.choice(list(view.participants)))
         await interaction.channel.send(f"🎉 Congratulations {winner.mention}! You won **{prize}**!")
     else:
-        await interaction.channel.send(f"🎁 Giveaway ended. No participants.")
+        await interaction.channel.send("🎁 Giveaway ended. No participants.")
 
 # ==============================================================================
 #                  الإحصائيات والمعلومات الشخصية والعامة
@@ -728,7 +854,8 @@ async def botinfo(interaction: discord.Interaction):
 async def serverinfo(interaction: discord.Interaction):
     guild = interaction.guild
     embed = discord.Embed(title=f"🏰 {guild.name}", color=discord.Color.gold())
-    if guild.icon: embed.set_thumbnail(url=guild.icon.url)
+    if guild.icon:
+        embed.set_thumbnail(url=guild.icon.url)
     embed.add_field(name="Owner", value=f"{guild.owner.mention}", inline=True)
     embed.add_field(name="Members", value=f"**{guild.member_count}**", inline=True)
     await interaction.response.send_message(embed=embed)
@@ -737,7 +864,8 @@ async def serverinfo(interaction: discord.Interaction):
 async def userinfo(interaction: discord.Interaction, member: discord.Member = None):
     target = member or interaction.user
     embed = discord.Embed(title=f"👤 {target.name}", color=target.color)
-    if target.avatar: embed.set_thumbnail(url=target.avatar.url)
+    if target.avatar:
+        embed.set_thumbnail(url=target.avatar.url)
     embed.add_field(name="ID", value=f"`{target.id}`", inline=True)
     await interaction.response.send_message(embed=embed)
 
@@ -745,7 +873,8 @@ async def userinfo(interaction: discord.Interaction, member: discord.Member = No
 async def avatar(interaction: discord.Interaction, member: discord.Member = None):
     target = member or interaction.user
     embed = discord.Embed(title=f"🖼️ {target.name}'s Avatar", color=discord.Color.blue())
-    if target.avatar: embed.set_image(url=target.avatar.url)
+    if target.avatar:
+        embed.set_image(url=target.avatar.url)
     await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="level", description="Check level")
@@ -763,7 +892,8 @@ async def slash_level(interaction: discord.Interaction, member: discord.Member =
 
 @bot.event
 async def on_message(message):
-    if message.author.bot or message.guild is None: return
+    if message.author.bot or message.guild is None:
+        return
     if message.author.id in OWNER_IDS or message.author == message.guild.owner or message.author.guild_permissions.administrator:
         await bot.process_commands(message)
         return
@@ -776,7 +906,10 @@ async def on_message(message):
     if current_time - user_data['last_time'] > 86400:
         user_data['suspicious_count'], user_data['link_count'] = 0, 0
 
-    has_dangerous_file = any(any(att.filename.lower().endswith(ext) for ext in DANGEROUS_EXTENSIONS) for att in message.attachments)
+    has_dangerous_file = any(
+        any(att.filename.lower().endswith(ext) for ext in DANGEROUS_EXTENSIONS) 
+        for att in message.attachments
+    )
     if has_dangerous_file:
         try:
             await message.delete()
@@ -786,13 +919,12 @@ async def on_message(message):
             await message.author.timeout(timedelta(minutes=mute_mins), reason="Suspicious file")
             await send_punishment_log(message.guild, message.author, bot.user, "SECURITY 🚨", "Sent malicious file", f"Mute {mute_mins}m + Kick")
             await message.author.kick(reason="Suspicious file")
-        except: pass
+        except:
+            pass
         return
 
     is_discord_link = "discord.gg/" in content_lower or "discord.com/invite/" in content_lower
     is_my_server = MY_SERVER_INVITE.lower() in content_lower
-    has_any_link = "http://" in content_lower or "https://" in content_lower or "www." in content_lower
-    is_allowed = any(p in content_lower for p in ALLOWED_PLATFORMS) or is_my_server
 
     if is_discord_link and not is_my_server:
         try:
@@ -803,7 +935,8 @@ async def on_message(message):
             mute_m = mutes[min(user_data['link_count'] - 1, len(mutes) - 1)]
             await message.author.timeout(timedelta(minutes=mute_m), reason="Discord invite spam")
             await send_punishment_log(message.guild, message.author, bot.user, "MUTE 🔇", "External Discord invite", f"{mute_m}m")
-        except: pass
+        except:
+            pass
         return
 
     xp, bal = get_user_data(author_id)
@@ -812,21 +945,19 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # ==============================================================================
-#            خادم الويب وواجهة الموقع الإلكتروني (Flask & Frontend)
+#            خادم الويب ونظام الدخول بـ Discord وواجهة الـ HTML الكبيرة
 # ==============================================================================
 
-from flask import render_template_string
-
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET", "voidcraft_secret_key_12345")
 
-# 🌐 يمكنك استبدال الرابط أدناه برابط صورة البوت الخاصة بك (Avatar)
-BOT_AVATAR_URL = "https://cdn.discordapp.com/embed/avatars/0.png" 
+DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "")
+DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "")
+REDIRECT_URI = os.environ.get("REDIRECT_URI", "https://voidcraft-bot.onrender.com/callback")
 
-# 🔗 رابط دعوة البوت الخاص بك من Discord Developer Portal
-CLIENT_ID = "YOUR_BOT_CLIENT_ID" # ضع هنا Client ID الخاص ببوتك
-DISCORD_INVITE_URL = f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&scope=bot&permissions=8"
+OAUTH2_URL = f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri={REDIRECT_URI}&response_type=code&scope=identify%20guilds"
 
-HTML_HOME_PAGE = f"""
+HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -834,7 +965,7 @@ HTML_HOME_PAGE = f"""
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VoidCraft - النظام الاحترافي الشامل</title>
     <style>
-        body {{
+        body {
             background-color: #0b0f19;
             color: #ffffff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -844,202 +975,114 @@ HTML_HOME_PAGE = f"""
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-        }}
-        .container {{
+        }
+        .container {
             text-align: center;
-            background: rgba(17, 24, 39, 0.85);
+            background: rgba(17, 24, 39, 0.9);
             padding: 40px;
             border-radius: 20px;
-            box-shadow: 0 8px 32px 0 rgba(124, 58, 237, 0.37);
+            box-shadow: 0 8px 32px rgba(124, 58, 237, 0.37);
             border: 1px solid rgba(255, 255, 255, 0.1);
             max-width: 750px;
             width: 100%;
-        }}
-        .bot-avatar {{
-            width: 120px;
-            height: 120px;
+        }
+        .avatar {
+            width: 130px;
+            height: 130px;
             border-radius: 50%;
             border: 3px solid #8b5cf6;
-            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
-            margin-bottom: 15px;
-        }}
-        h1 {{
-            font-size: 2.5rem;
+            box-shadow: 0 0 25px rgba(139, 92, 246, 0.6);
+            margin-bottom: 20px;
+        }
+        h1 {
             color: #8b5cf6;
             margin-bottom: 10px;
-        }}
-        .description {{
+            font-size: 2.8rem;
+        }
+        p {
             color: #9ca3af;
-            font-size: 1.1rem;
-            margin-bottom: 25px;
+            font-size: 1.15rem;
             line-height: 1.6;
-        }}
-        .features {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-            text-align: right;
-        }}
-        .feature-card {{
-            background: rgba(31, 41, 55, 0.5);
-            padding: 15px;
-            border-radius: 10px;
-            border-right: 4px solid #7c3aed;
-        }}
-        .feature-card h4 {{ margin: 0 0 5px 0; color: #f3f4f6; }}
-        .feature-card p {{ margin: 0; font-size: 0.85rem; color: #9ca3af; }}
-        .stats {{
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 30px;
-            background: rgba(31, 41, 55, 0.5);
-            padding: 15px;
-            border-radius: 10px;
-        }}
-        .stat-item h3 {{ margin: 0; color: #f3f4f6; font-size: 1.6rem; }}
-        .stat-item span {{ font-size: 0.9rem; color: #9ca3af; }}
-        .btn-group {{
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }}
-        .btn {{
+        }
+        .btn {
             background-color: #7c3aed;
             color: white;
-            padding: 12px 25px;
-            border-radius: 8px;
+            padding: 14px 30px;
+            border-radius: 10px;
             text-decoration: none;
             font-weight: bold;
-            transition: 0.3s;
             cursor: pointer;
             border: none;
-            font-size: 1rem;
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
-        }}
-        .btn:hover {{ background-color: #6d28d9; transform: translateY(-2px); }}
-        .btn-buy {{ background-color: #10b981; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); }}
-        .btn-buy:hover {{ background-color: #059669; }}
-        
-        /* شاشة اختيار السيرفر بعد الدفع */
-        #server-selection-modal {{
-            display: none;
-            margin-top: 25px;
-            background: rgba(15, 23, 42, 0.95);
-            padding: 20px;
-            border-radius: 15px;
-            border: 1px solid #10b981;
-        }}
-        .server-list {{
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 15px;
-        }}
-        .server-item {{
+            font-size: 1.05rem;
+            display: inline-block;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+        }
+        .btn:hover {
+            background-color: #6d28d9;
+            transform: translateY(-3px);
+        }
+        .btn-buy {
+            background-color: #10b981;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+        .btn-buy:hover {
+            background-color: #059669;
+        }
+        .server-card {
+            background: #1e293b;
+            padding: 18px;
+            margin: 12px 0;
+            border-radius: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #1e293b;
-            padding: 10px 15px;
-            border-radius: 8px;
-        }}
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- صورة البوت -->
-        <img src="{BOT_AVATAR_URL}" alt="VoidCraft Logo" class="bot-avatar">
-        
+        <!-- الصورة الحقيقية للـ Avatar مأخوذة مباشرة من حساب البوت -->
+        <img src="{{ bot_avatar }}" class="avatar" alt="VoidCraft Avatar">
         <h1>VoidCraft</h1>
-        <p class="description">البوت الآمن الشامل لحماية وإدارة وتنشيط سيرفرك 24/7 بدعم كامل للغة العربية والإنجليزية وبدون أي خيارات غير حلال.</p>
+        <p>النظام الاحترافي المتكامل لحماية وإدارة وتنشيط سيرفرك 24/7 بدعم كامل للغة العربية والإنجليزية واقتصاد حلال ومسابقات تلقائية.</p>
 
-        <!-- ماذا يقدم البوت -->
-        <div class="features">
-            <div class="feature-card">
-                <h4>🛡️ حماية حقيقية</h4>
-                <p>منع الملفات الملغومة، روابط السبام، وحظر الأوامر في الشات العام.</p>
+        {% if not user %}
+            <!-- زر الدخول والربط بديكسورد -->
+            <a href="{{ oauth_url }}" class="btn btn-buy">🔑 تسجيل الدخول بحساب Discord للشراء</a>
+        {% else %}
+            <h3>أهلاً بك، {{ user['username'] }} 👋</h3>
+            <p>اختر سيرفر واحد فقط من سيرفراتك التي تملك فيها رتبة (Owner) لتفعيل البوت فيه بعد الدفع:</p>
+            <div>
+                {% for guild in owned_guilds %}
+                    <div class="server-card">
+                        <span>🏰 {{ guild['name'] }}</span>
+                        <button onclick="activateGuild('{{ guild['id'] }}')" class="btn btn-buy">تفعيل هذا السيرفر ($4.99)</button>
+                    </div>
+                {% else %}
+                    <p style="color: #ef4444;">لم نجد سيرفرات تملك فيها رتبة (Owner)!</p>
+                {% endfor %}
             </div>
-            <div class="feature-card">
-                <h4>🪙 اقتصاد حلال</h4>
-                <p>مكافآت يومية، تحويل أموال، ونظام مستويات تفاعلي بدون قمار.</p>
-            </div>
-            <div class="feature-card">
-                <h4>🎫 دعم ومسابقات</h4>
-                <p>تكتات دعم فني تفاعلية وسحوبات Giveaway آلية.</p>
-            </div>
-        </div>
-
-        <!-- الإحصائيات -->
-        <div class="stats">
-            <div class="stat-item">
-                <h3 id="server-count">...</h3>
-                <span>السيرفرات المفعّلة</span>
-            </div>
-            <div class="stat-item">
-                <h3 id="user-count">...</h3>
-                <span>الأعضاء المحميون</span>
-            </div>
-        </div>
-
-        <!-- أزرار العمليات -->
-        <div class="btn-group">
-            <a href="{DISCORD_INVITE_URL}" target="_blank" class="btn">إضافة البوت (Invite Bot)</a>
-            <button onclick="startPurchaseFlow()" class="btn btn-buy">تسجيل الدخول والاشتراك ($4.99 / شهرياً)</button>
-        </div>
-
-        <!-- منطقة اختيار سيرفر واحد بعد تسجيل الدخول والدفع -->
-        <div id="server-selection-modal">
-            <h3 style="color: #10b981;">🎉 تم الدفع بنجاح! اختر سيرفر واحد فقط لتفعيله:</h3>
-            <p style="font-size: 0.9rem; color: #9ca3af;">(يظهر هنا السيرفرات التي تملك فيها رتبة Owner)</p>
-            <div class="server-list" id="servers-container">
-                <!-- سيتم جلب السيرفرات تلقائياً عبر Discord OAuth2 -->
-            </div>
-        </div>
+            <br>
+            <a href="/logout" style="color: #9ca3af; font-size: 0.9rem;">تسجيل الخروج</a>
+        {% endif %}
     </div>
 
     <script>
-        fetch('/api/stats')
-            .then(res => res.json())
-            .then(data => {{
-                document.getElementById('server-count').innerText = data.servers;
-                document.getElementById('user-count').innerText = data.users;
-            }});
-
-        function startPurchaseFlow() {{
-            // 1. تسجيل الدخول بحساب ديسكورد وجلب السيرفرات
-            alert("سيتم الآن تحويلك لتسجيل الدخول بحساب الديسكورد للتحقق من سيرفراتك ثم إتمام الدفع!");
-            
-            // محاكاة إظهار قائمة السيرفرات بعد إتمام الدفع (اختيار سيرفر واحد فقط)
-            document.getElementById('server-selection-modal').style.display = 'block';
-            const container = document.getElementById('servers-container');
-            
-            // تجربة العرض: سيرفرين يملكهما العميل مع إمكانية اختيار واحد فقط
-            container.innerHTML = `
-                <div class="server-item">
-                    <span>🏰 سيرفر التجربة الأول (أنت الأونر)</span>
-                    <button class="btn btn-buy" onclick="activateSingleServer('123456789')">تفعيل هذا السيرفر</button>
-                </div>
-                <div class="server-item">
-                    <span>🏰 سيرفر المجتمعات الثاني (أنت الأونر)</span>
-                    <button class="btn btn-buy" onclick="activateSingleServer('987654321')">تفعيل هذا السيرفر</button>
-                </div>
-            `;
-        }}
-
-        function activateSingleServer(guildId) {{
-            fetch('/api/activate', {{
+        function activateGuild(guildId) {
+            fetch('/api/activate', {
                 method: 'POST',
-                headers: {{ 'Content-Type': 'application/json' }},
-                body: JSON.stringify({{ guild_id: guildId }})
-            }})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ guild_id: guildId })
+            })
             .then(res => res.json())
-            .then(data => {{
-                alert("✅ تم تفعيل الاشتراك بنجاح للسيرفر المختار! يمكنك الآن استخدام البوت بكامل الصلاحيات.");
-                window.location.href = "{DISCORD_INVITE_URL}&guild_id=" + guildId;
-            }});
-        }}
+            .then(data => {
+                alert("✅ تم تفعيل الاشتراك بنجاح للسيرفر! سيتم تحويلك لدعوة البوت لسيرفرك الآن.");
+                window.location.href = "https://discord.com/oauth2/authorize?client_id={{ client_id }}&scope=bot&permissions=8&guild_id=" + guildId;
+            });
+        }
     </script>
 </body>
 </html>
@@ -1047,7 +1090,54 @@ HTML_HOME_PAGE = f"""
 
 @app.route("/")
 def home():
-    return render_template_string(HTML_HOME_PAGE)
+    bot_avatar = bot.user.display_avatar.url if bot.user else "https://cdn.discordapp.com/embed/avatars/0.png"
+    user = session.get("user")
+    owned_guilds = session.get("owned_guilds", [])
+    
+    return render_template_string(
+        HTML_TEMPLATE, 
+        bot_avatar=bot_avatar, 
+        user=user, 
+        owned_guilds=owned_guilds, 
+        oauth_url=OAUTH2_URL,
+        client_id=DISCORD_CLIENT_ID
+    )
+
+@app.route("/callback")
+def callback():
+    code = request.args.get("code")
+    if not code:
+        return redirect("/")
+
+    data = {
+        'client_id': DISCORD_CLIENT_ID,
+        'client_secret': DISCORD_CLIENT_SECRET,
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': REDIRECT_URI
+    }
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    r = requests.post('https://discord.com/api/v10/oauth2/token', data=data, headers=headers)
+    token_json = r.json()
+    access_token = token_json.get('access_token')
+
+    if access_token:
+        headers = {'Authorization': f'Bearer {access_token}'}
+        user_req = requests.get('https://discord.com/api/v10/users/@me', headers=headers)
+        session['user'] = user_req.json()
+
+        guilds_req = requests.get('https://discord.com/api/v10/users/@me/guilds', headers=headers)
+        guilds = guilds_req.json()
+        
+        owned = [g for g in guilds if g.get('owner') == True]
+        session['owned_guilds'] = owned
+
+    return redirect("/")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
 
 @app.route("/api/stats", methods=["GET"])
 def api_stats():
@@ -1060,7 +1150,8 @@ def api_stats():
 def api_activate():
     data = request.json
     guild_id = data.get("guild_id")
-    if not guild_id: return jsonify({"error": "Missing guild_id"}), 400
+    if not guild_id:
+        return jsonify({"error": "Missing guild_id"}), 400
     
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
@@ -1072,8 +1163,10 @@ def api_activate():
 
 def run_bot():
     token = os.environ.get("DISCORD_TOKEN")
-    if token: bot.run(token)
-    else: print("❌ Error: DISCORD_TOKEN not found!")
+    if token:
+        bot.run(token)
+    else:
+        print("❌ Error: DISCORD_TOKEN not found!")
 
 bot_thread = threading.Thread(target=run_bot)
 bot_thread.daemon = True
