@@ -819,120 +819,227 @@ from flask import render_template_string
 
 app = Flask(__name__)
 
-# 🌐 تصميم واجهة الموقع الاحترافية بدعم جميع العملات العالمية
-HTML_HOME_PAGE = """
+# 🌐 يمكنك استبدال الرابط أدناه برابط صورة البوت الخاصة بك (Avatar)
+BOT_AVATAR_URL = "https://cdn.discordapp.com/embed/avatars/0.png" 
+
+# 🔗 رابط دعوة البوت الخاص بك من Discord Developer Portal
+CLIENT_ID = "YOUR_BOT_CLIENT_ID" # ضع هنا Client ID الخاص ببوتك
+DISCORD_INVITE_URL = f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&scope=bot&permissions=8"
+
+HTML_HOME_PAGE = f"""
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VoidCraft - Global Discord Bot</title>
+    <title>VoidCraft - النظام الاحترافي الشامل</title>
     <style>
-        body {
+        body {{
             background-color: #0b0f19;
             color: #ffffff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding: 0;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-        }
-        .container {
+            min-height: 100vh;
+        }}
+        .container {{
             text-align: center;
             background: rgba(17, 24, 39, 0.85);
-            padding: 50px;
+            padding: 40px;
             border-radius: 20px;
             box-shadow: 0 8px 32px 0 rgba(124, 58, 237, 0.37);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 600px;
-        }
-        h1 {
-            font-size: 2.8rem;
+            max-width: 750px;
+            width: 100%;
+        }}
+        .bot-avatar {{
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 3px solid #8b5cf6;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+            margin-bottom: 15px;
+        }}
+        h1 {{
+            font-size: 2.5rem;
             color: #8b5cf6;
             margin-bottom: 10px;
-        }
-        p {
+        }}
+        .description {{
             color: #9ca3af;
             font-size: 1.1rem;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }}
+        .features {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
             margin-bottom: 30px;
-        }
-        .stats {
+            text-align: right;
+        }}
+        .feature-card {{
+            background: rgba(31, 41, 55, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            border-right: 4px solid #7c3aed;
+        }}
+        .feature-card h4 {{ margin: 0 0 5px 0; color: #f3f4f6; }}
+        .feature-card p {{ margin: 0; font-size: 0.85rem; color: #9ca3af; }}
+        .stats {{
             display: flex;
             justify-content: space-around;
             margin-bottom: 30px;
             background: rgba(31, 41, 55, 0.5);
             padding: 15px;
             border-radius: 10px;
-        }
-        .stat-item h3 {
-            margin: 0;
-            color: #f3f4f6;
-            font-size: 1.6rem;
-        }
-        .stat-item span {
-            font-size: 0.9rem;
-            color: #9ca3af;
-        }
-        .btn-group {
+        }}
+        .stat-item h3 {{ margin: 0; color: #f3f4f6; font-size: 1.6rem; }}
+        .stat-item span {{ font-size: 0.9rem; color: #9ca3af; }}
+        .btn-group {{
             display: flex;
             gap: 15px;
             justify-content: center;
-        }
-        .btn {
+            flex-wrap: wrap;
+        }}
+        .btn {{
             background-color: #7c3aed;
             color: white;
-            padding: 14px 28px;
+            padding: 12px 25px;
             border-radius: 8px;
             text-decoration: none;
             font-weight: bold;
             transition: 0.3s;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
             box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
-        }
-        .btn:hover {
-            background-color: #6d28d9;
-            transform: translateY(-2px);
-        }
-        .btn-buy {
-            background-color: #10b981;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-        }
-        .btn-buy:hover {
-            background-color: #059669;
-        }
+        }}
+        .btn:hover {{ background-color: #6d28d9; transform: translateY(-2px); }}
+        .btn-buy {{ background-color: #10b981; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); }}
+        .btn-buy:hover {{ background-color: #059669; }}
+        
+        /* شاشة اختيار السيرفر بعد الدفع */
+        #server-selection-modal {{
+            display: none;
+            margin-top: 25px;
+            background: rgba(15, 23, 42, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid #10b981;
+        }}
+        .server-list {{
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }}
+        .server-item {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1e293b;
+            padding: 10px 15px;
+            border-radius: 8px;
+        }}
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>VoidCraft</h1>
-        <p>The ultimate 24/7 security, moderation & entertainment Discord bot for communities worldwide.</p>
+        <!-- صورة البوت -->
+        <img src="{BOT_AVATAR_URL}" alt="VoidCraft Logo" class="bot-avatar">
         
-        <div class="stats">
-            <div class="stat-item">
-                <h3 id="server-count">...</h3>
-                <span>Active Servers</span>
+        <h1>VoidCraft</h1>
+        <p class="description">البوت الآمن الشامل لحماية وإدارة وتنشيط سيرفرك 24/7 بدعم كامل للغة العربية والإنجليزية وبدون أي خيارات غير حلال.</p>
+
+        <!-- ماذا يقدم البوت -->
+        <div class="features">
+            <div class="feature-card">
+                <h4>🛡️ حماية حقيقية</h4>
+                <p>منع الملفات الملغومة، روابط السبام، وحظر الأوامر في الشات العام.</p>
             </div>
-            <div class="stat-item">
-                <h3 id="user-count">...</h3>
-                <span>Users Protected</span>
+            <div class="feature-card">
+                <h4>🪙 اقتصاد حلال</h4>
+                <p>مكافآت يومية، تحويل أموال، ونظام مستويات تفاعلي بدون قمار.</p>
+            </div>
+            <div class="feature-card">
+                <h4>🎫 دعم ومسابقات</h4>
+                <p>تكتات دعم فني تفاعلية وسحوبات Giveaway آلية.</p>
             </div>
         </div>
 
+        <!-- الإحصائيات -->
+        <div class="stats">
+            <div class="stat-item">
+                <h3 id="server-count">...</h3>
+                <span>السيرفرات المفعّلة</span>
+            </div>
+            <div class="stat-item">
+                <h3 id="user-count">...</h3>
+                <span>الأعضاء المحميون</span>
+            </div>
+        </div>
+
+        <!-- أزرار العمليات -->
         <div class="btn-group">
-            <a href="https://discord.com/oauth2/authorize?client_id=YOUR_BOT_CLIENT_ID&scope=bot&permissions=8" target="_blank" class="btn">Invite Bot</a>
-            <a href="javascript:void(0)" onclick="alert('سوف يتم وضع رابط بوابة الدفع الخاصة بك مباشرة هنا عند ربط الحساب البنكي!');" class="btn btn-buy">Subscribe ($4.99 / mo)</a>
+            <a href="{DISCORD_INVITE_URL}" target="_blank" class="btn">إضافة البوت (Invite Bot)</a>
+            <button onclick="startPurchaseFlow()" class="btn btn-buy">تسجيل الدخول والاشتراك ($4.99 / شهرياً)</button>
+        </div>
+
+        <!-- منطقة اختيار سيرفر واحد بعد تسجيل الدخول والدفع -->
+        <div id="server-selection-modal">
+            <h3 style="color: #10b981;">🎉 تم الدفع بنجاح! اختر سيرفر واحد فقط لتفعيله:</h3>
+            <p style="font-size: 0.9rem; color: #9ca3af;">(يظهر هنا السيرفرات التي تملك فيها رتبة Owner)</p>
+            <div class="server-list" id="servers-container">
+                <!-- سيتم جلب السيرفرات تلقائياً عبر Discord OAuth2 -->
+            </div>
         </div>
     </div>
 
     <script>
         fetch('/api/stats')
             .then(res => res.json())
-            .then(data => {
+            .then(data => {{
                 document.getElementById('server-count').innerText = data.servers;
                 document.getElementById('user-count').innerText = data.users;
-            });
+            }});
+
+        function startPurchaseFlow() {{
+            // 1. تسجيل الدخول بحساب ديسكورد وجلب السيرفرات
+            alert("سيتم الآن تحويلك لتسجيل الدخول بحساب الديسكورد للتحقق من سيرفراتك ثم إتمام الدفع!");
+            
+            // محاكاة إظهار قائمة السيرفرات بعد إتمام الدفع (اختيار سيرفر واحد فقط)
+            document.getElementById('server-selection-modal').style.display = 'block';
+            const container = document.getElementById('servers-container');
+            
+            // تجربة العرض: سيرفرين يملكهما العميل مع إمكانية اختيار واحد فقط
+            container.innerHTML = `
+                <div class="server-item">
+                    <span>🏰 سيرفر التجربة الأول (أنت الأونر)</span>
+                    <button class="btn btn-buy" onclick="activateSingleServer('123456789')">تفعيل هذا السيرفر</button>
+                </div>
+                <div class="server-item">
+                    <span>🏰 سيرفر المجتمعات الثاني (أنت الأونر)</span>
+                    <button class="btn btn-buy" onclick="activateSingleServer('987654321')">تفعيل هذا السيرفر</button>
+                </div>
+            `;
+        }}
+
+        function activateSingleServer(guildId) {{
+            fetch('/api/activate', {{
+                method: 'POST',
+                headers: {{ 'Content-Type': 'application/json' }},
+                body: JSON.stringify({{ guild_id: guildId }})
+            }})
+            .then(res => res.json())
+            .then(data => {{
+                alert("✅ تم تفعيل الاشتراك بنجاح للسيرفر المختار! يمكنك الآن استخدام البوت بكامل الصلاحيات.");
+                window.location.href = "{DISCORD_INVITE_URL}&guild_id=" + guildId;
+            }});
+        }}
     </script>
 </body>
 </html>
