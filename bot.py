@@ -1172,7 +1172,19 @@ def callback():
     }
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
     r = requests.post('https://discord.com/api/v10/oauth2/token', data=data, headers=headers)
-    token_json = r.json()
+    
+    # طباعة الرد في الـ Logs لنعرف السبب لو حدث خطأ مجدداً
+    print("Discord Token Response Status:", r.status_code)
+    print("Discord Token Response Text:", r.text)
+
+    if r.status_code != 200:
+        return f"خطأ من ديسكورد: {r.text}", 400
+
+    try:
+        token_json = r.json()
+    except Exception as e:
+        return f"خطأ في قراءة الرد: {e}", 500
+
     access_token = token_json.get('access_token')
 
     if access_token:
@@ -1183,14 +1195,12 @@ def callback():
         guilds_req = requests.get('https://discord.com/api/v10/users/@me/guilds', headers=headers)
         guilds = guilds_req.json()
         
-        owned = [g for g in guilds if g.get('owner') == True]
-        session['owned_guilds'] = owned
+        if isinstance(guilds, list):
+            owned = [g for g in guilds if g.get('owner') == True]
+            session['owned_guilds'] = owned
+        else:
+            session['owned_guilds'] = []
 
-    return redirect("/")
-
-@app.route("/logout")
-def logout():
-    session.clear()
     return redirect("/")
 
 @app.route("/api/stats", methods=["GET"])
